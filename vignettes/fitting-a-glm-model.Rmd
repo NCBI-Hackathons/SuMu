@@ -1,0 +1,71 @@
+---
+title: "Fitting a GLM model using Stan"
+author: "Jacqueline Buros"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+There are two ways to fit a GLM model using [Stan](https://mc-stan.org).
+
+1. Use rstanarm::stan_glm
+2. Write the stan code for the model & fit using `rstan::fit`
+
+We will work through both examples here.
+
+## Using rstanarm
+
+First let's select a dataset to which we want to fit our model.
+
+```{r get-data}
+data("mtcars")
+```
+
+Let's decide on the model we want to estimate. For now we will fit a really generic model to predict `mpg`.
+
+```{r fit-model1}
+library(rstanarm)
+fit1 <- rstanarm::stan_glm(mpg / 10 ~ .,
+                          data = mtcars)
+print(fit1)
+```
+
+We can modify the priors on the covariates, to enforce greater sparsity.
+
+```{r fit-model2}
+fit2 <- rstanarm::stan_glm(mpg / 10 ~ .,
+                          data = mtcars,
+                          prior = cauchy(),
+                          adapt_delta = 0.999
+                          )
+print(fit2)
+```
+
+We can also [put a prior on `R2`](https://rdrr.io/cran/rstanarm/f/vignettes/lm.Rmd). This reflects our overall confidence in the ability of the model to explain our outcome.
+
+```{r fit-model3}
+fit3 <- rstanarm::stan_lm(mpg / 10 ~ .,
+                          data = mtcars,
+                          prior = R2(location = 0.3, what = 'mode'),
+                          adapt_delta = 0.999
+                          )
+print(fit3)
+```
+
+
+## evaluating posterior fits
+
+Now, let's assume these all sampled well & that we have good estimates for our parameters from the three fits.
+
+First thing we might want to do is compare these posterior estimates.
+
+```{r compare-fits}
+library(bayesplot)
+plot1 <- bayesplot::mcmc_areas(as.array(fit1), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot2 <- bayesplot::mcmc_areas(as.array(fit2), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot3 <- bayesplot::mcmc_areas(as.array(fit3), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+gridExtra::grid.arrange(plot1, plot2, ncol = 2)
+```
