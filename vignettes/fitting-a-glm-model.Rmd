@@ -93,7 +93,10 @@ loo::compare(loo(fit1, k_threshold = 0.7),
              loo(fit3, k_threshold = 0.7))
 ```
 
+When comparing 3 models, we get back a ranking of the models in terms of their predictive performance on our data (lower models of . When comparing 
 A positive result indicates that the second model is a better fit than the first.
+
+Note that we can also plot the `loo` object. 
 
 ## Fitting GLM model
 
@@ -109,19 +112,20 @@ bfit <- stan_glm(
    family = binomial(link = "logit"),
    prior_intercept = normal(0, 10),
    QR = TRUE,
-   chains = 2, iter = 2000 
+   chains = 2,
+   iter = 2000
 )
 print(bfit)
-prior_summary(bfit)
+#prior_summary(bfit)
 ```
 
 
 ## Using stan code to fit the GLM model
 
 ```{r stan-code, echo=FALSE}
-file_path <- 'stan_glm.stan'
-lines <- readLines(file_path, encoding="ASCII")
-for (n in 1:length(lines)) cat(lines[n],'\n')
+file_path <- file.path('vignettes','stan_glm.stan')
+lines <- readLines(file_path, encoding = 'ASCII')
+for (n in 1:length(lines)) cat(lines[n], '\n')
 ```
 
 Stan code is broken into several blocks --
@@ -166,4 +170,25 @@ print(stan_fit, pars = c('beta', 'sigma'))
 ```
 
 You will notice that this summary is not "pretty" -- ie, our beta coefficients are not labelled in a pleasing way, as our results from rstanarm were.
+
+We do, however, have access to the x-coefficient names.
+
+```{r}
+ols_estimates$coefficients
+```
+
+And, we can still use the `bayesplot` & `loo` package functionality , although to use loo we will need to calculate our log-likelihood contributions for each observed value.
+
+Here's an example of plotting our beta-estimates from this model fit.
+
+```{r}
+bayesplot::mcmc_areas(as.array(stan_fit), regex_pars = 'beta.*')
+```
+
+It's also worth calling out the excellent tool called `shinystan`. 
+
+```{r}
+if (interactive())
+  launch_shinystan(fit1)
+```
 
