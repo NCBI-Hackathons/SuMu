@@ -33,18 +33,21 @@ fit1 <- rstanarm::stan_glm(mpg / 10 ~ .,
 print(fit1)
 ```
 
-We can modify the priors on the covariates, to enforce greater sparsity.
+Here we fit the default stan model, which puts a normal(0, 1) prior on each of the covariate estimates. 
+
+In the `rstanarm` framework, we can modify the priors on the covariates, to set a particular distribution of priors (e.g. `student_t` or `cauchy`) or to enforce greater sparsity (e.g. `hs()` or `hs_plus()`). See [prior distribitions](https://github.com/stan-dev/rstanarm/wiki/Prior-distributions) for a description of prior distributions available.
 
 ```{r fit-model2}
 fit2 <- rstanarm::stan_glm(mpg / 10 ~ .,
                            data = mtcars,
-                           prior = hs_plus(global_df = 1),
-                           adapt_delta = 0.999
+                           prior = cauchy(),
+                           adapt_delta = 0.999,
+                           iter = 4000
                            )
 print(fit2)
 ```
 
-We can also [put a prior on `R2`](https://rdrr.io/cran/rstanarm/f/vignettes/lm.Rmd). This reflects our overall confidence in the ability of the model to explain our outcome.
+For linear models, we also have the choice of putting a more global prior on the coefficient parameters, though a neat math trick which allows us to [put a prior on `R2`](https://rdrr.io/cran/rstanarm/f/vignettes/lm.Rmd). This reflects our overall confidence in the ability of the model to explain our outcome.
 
 ```{r fit-model3}
 fit3 <- rstanarm::stan_lm(mpg / 10 ~ .,
@@ -55,6 +58,7 @@ fit3 <- rstanarm::stan_lm(mpg / 10 ~ .,
 print(fit3)
 ```
 
+At the end of the day, the decision of how to select priors can be based on substantive knowledge (from previous experiments or domain experience) or on model performance (e.g. cross-validation performance).
 
 ### Evaluating posterior fits
 
@@ -64,9 +68,15 @@ First thing we might want to do is compare these posterior estimates.
 
 ```{r compare-fits}
 library(bayesplot)
-plot1 <- bayesplot::mcmc_dens_overlay(as.array(fit1), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
-plot2 <- bayesplot::mcmc_dens_overlay(as.array(fit2), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
-plot3 <- bayesplot::mcmc_dens_overlay(as.array(fit3), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot1 <- bayesplot::mcmc_dens_overlay(as.array(fit1),
+                                      facet_args = list(ncol = 1),
+                                      pars = c('cyl', 'wt'))
+plot2 <- bayesplot::mcmc_dens_overlay(as.array(fit2),
+                                      facet_args = list(ncol = 1),
+                                      pars = c('cyl', 'wt'))
+plot3 <- bayesplot::mcmc_dens_overlay(as.array(fit3),
+                                      facet_args = list(ncol = 1),
+                                      pars = c('cyl', 'wt'))
 gridExtra::grid.arrange(plot1, plot2, ncol = 2)
 ```
 
@@ -78,7 +88,9 @@ We can compare these models using a leave-one-out approximation.
 
 ```{r compare-loo}
 library(loo)
-loo::compare(loo(fit1, k_threshold = 0.7), loo(fit2, k_threshold = 0.7))
+loo::compare(loo(fit1, k_threshold = 0.7),
+             loo(fit2, k_threshold = 0.7),
+             loo(fit3, k_threshold = 0.7))
 ```
 
 A positive result indicates that the second model is a better fit than the first.
@@ -104,5 +116,54 @@ prior_summary(bfit)
 ```
 
 
-## Using stan code
+## Using stan code to fit the GLM model
+
+```{r stan-code, echo=FALSE}
+file_path <- 'stan_glm.stan'
+lines <- readLines(file_path, encoding="ASCII")
+for (n in 1:length(lines)) cat(lines[n],'\n')
+```
+
+Stan code is broken into several blocks --
+
+1. Data block: defines inputs expected by the model.
+2. Parameters block: defines the parameters.
+3. Transformed parameters: transformations of parameters; applies jacobian adjustment for transformations.
+4. Model block: defines the log-likelihood (posterior density) of the model.
+
+There are other blocks (`functions` & `generated quantities`) but we are not using them here.
+
+### Fit the model to our data
+
+In order to fit this model to our data using `rstan::fit`, we first need to prepare a named `list` to provide data to the stan model.
+
+```{r}
+ols_estimate <- glm(mpg / 10 ~ . , data = mtcars, x = TRUE)
+x <- ols_estimate$x
+y <- ols_estimate$y
+
+stan_data <- list(
+  N = length(y),
+  M = ncol(x),
+  x = x,
+  y = as.array(y)
+)
+str(stan_data)
+```
+
+Now we are ready to fit our model to our data.
+
+```{r fit-model}
+stan_fit <- rstan::stan(file = file_path, data = stan_data)
+```
+
+### Summarizing the fit object
+
+The final step is to summarize the fit object.
+
+```{r print-summary}
+print(stan_fit, pars = c('beta', 'sigma'))
+```
+
+You will notice that this summary is not "pretty" -- ie, our beta coefficients are not labelled in a pleasing way, as our results from rstanarm were.
 
