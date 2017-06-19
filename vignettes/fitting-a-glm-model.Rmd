@@ -174,7 +174,7 @@ You will notice that this summary is not "pretty" -- ie, our beta coefficients a
 We do, however, have access to the x-coefficient names.
 
 ```{r}
-ols_estimates$coefficients
+ols_estimate$coefficients
 ```
 
 And, we can still use the `bayesplot` & `loo` package functionality , although to use loo we will need to calculate our log-likelihood contributions for each observed value.
