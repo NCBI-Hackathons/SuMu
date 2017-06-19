@@ -37,10 +37,10 @@ We can modify the priors on the covariates, to enforce greater sparsity.
 
 ```{r fit-model2}
 fit2 <- rstanarm::stan_glm(mpg / 10 ~ .,
-                          data = mtcars,
-                          prior = cauchy(),
-                          adapt_delta = 0.999
-                          )
+                           data = mtcars,
+                           prior = hs_plus(global_df = 1),
+                           adapt_delta = 0.999
+                           )
 print(fit2)
 ```
 
@@ -56,7 +56,7 @@ print(fit3)
 ```
 
 
-## evaluating posterior fits
+### Evaluating posterior fits
 
 Now, let's assume these all sampled well & that we have good estimates for our parameters from the three fits.
 
@@ -64,8 +64,45 @@ First thing we might want to do is compare these posterior estimates.
 
 ```{r compare-fits}
 library(bayesplot)
-plot1 <- bayesplot::mcmc_areas(as.array(fit1), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
-plot2 <- bayesplot::mcmc_areas(as.array(fit2), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
-plot3 <- bayesplot::mcmc_areas(as.array(fit3), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot1 <- bayesplot::mcmc_dens_overlay(as.array(fit1), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot2 <- bayesplot::mcmc_dens_overlay(as.array(fit2), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
+plot3 <- bayesplot::mcmc_dens_overlay(as.array(fit3), facet_args = list(ncol = 1), pars = c('cyl', 'wt'))
 gridExtra::grid.arrange(plot1, plot2, ncol = 2)
 ```
+
+These priors have very little impact on our estimated coefficient values.
+
+### Model comparison using `loo`
+
+We can compare these models using a leave-one-out approximation.
+
+```{r compare-loo}
+library(loo)
+loo::compare(loo(fit1, k_threshold = 0.7), loo(fit2, k_threshold = 0.7))
+```
+
+A positive result indicates that the second model is a better fit than the first.
+
+## Fitting GLM model
+
+Let's try fitting a `glm` (logistic) regression model. This example is borrowed from the rstanarm vignette `vignette("binomial", package = 'rstanarm')`.
+
+
+```{r}
+data(wells)
+wells$dist100 <- wells$dist / 100
+bfit <- stan_glm(
+   switch ~ dist100 + arsenic, 
+   data = wells,
+   family = binomial(link = "logit"),
+   prior_intercept = normal(0, 10),
+   QR = TRUE,
+   chains = 2, iter = 2000 
+)
+print(bfit)
+prior_summary(bfit)
+```
+
+
+## Using stan code
+
