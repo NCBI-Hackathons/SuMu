@@ -22,13 +22,15 @@ library(scales)
 
 ## Clinical Data
 
+First, download the clinical data. Here we are using the TCGA skin cutaneous melanoma (SKCM) cohort.
+
 ```{r load-clin}
 clin_df <- SuMu::get_tcga_clinical(cohort = "SKCM")
 ```
 
 ### Review clinical data 
 
-For this analysis we will consider the survival time in `r print(unique(clin_df$_OS_UNIT))` since initial pathologic diagnosis.  
+For this analysis we will consider the survival time in `r print(unique(clin_df$_OS_UNIT))` since initial pathologic diagnosis.
 
 ```{r plot-survival}
 fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ 1,
@@ -42,6 +44,14 @@ Plotting by stage, although the time of 'stage' determination may be confounded 
 ```{r plot-survival-by-stage}
 fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ pathologic_stage,
                   data = clin_df)
-survminer::ggsurvplot(fit)
+survminer::ggsurvplot(fit, legend = "right")
+```
+
+There also seem to be differences by tumor type.
+
+```{r plot-survival-by-sample-type}
+fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ sample_type,
+                  data = clin_df)
+survminer::ggsurvplot(fit, legend = "right")
 ```
 
