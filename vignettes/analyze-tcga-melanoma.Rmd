@@ -119,6 +119,7 @@ mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM")
 Check the most frequent mutations.
 
 ```{r check-top-muts}
-mut_df$gene_aa = paste0(mut_df$gene, ":", mut_df$Amino_Acid_Change)
-mut_df %>% filter(effect == "Missense_Mutation") %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
+mut_df_missense = mut_df %>% dplyr::filter(effect == "Missense_Mutation")
+mut_df_missense$gene_aa = paste0(mut_df_missense$gene, ":", mut_df_missense$Amino_Acid_Change)
+mut_df_missense %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
 ```
