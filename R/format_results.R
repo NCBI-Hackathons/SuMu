@@ -10,7 +10,7 @@
 #' @param id string name of id column in data & biodata
 #' @return structure supporting posterior summary of results
 #' @export
-format_results.StanReg <- function(fit) {
+format_results.stanreg <- function(fit) {
 
 }
 
