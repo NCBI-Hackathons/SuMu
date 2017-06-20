@@ -69,7 +69,6 @@ fit <- survfit(Surv(OS, OS_IND) ~ sample_type,
 survminer::ggsurvplot(fit, legend = "right")
 ```
 
-<<<<<<< HEAD
 (Aside: I wonder how similar tumor type is to sample type? For example, we could have a metastatic patient where the sample was obtained from the primary tumor. We will want to adjust our genetic data analysis for the sample type but may want to estimate prognosis according to the tumor type?)
 
 A variable like `year_of_initial_pathologic_diagnosis` is guaranteed to be unconfounded since we can safely assume it was collected at the time of diagnosis.
