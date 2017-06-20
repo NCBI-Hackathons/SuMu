@@ -2,6 +2,10 @@
 
 export(fit_glm)
 export(fit_surv)
+export(get_tcga_clinical)
+export(get_tcga_somatic_mutations)
+import(magrittr)
+import(readr)
 import(rstan)
 import(rstanarm)
 import(survival)
