@@ -16,7 +16,6 @@
 #'
 #' @return stanreg object
 #' @import rstanarm
-#' # not exported
 fit_rstanarm <- function(
   formula,
   data,
