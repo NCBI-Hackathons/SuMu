@@ -1,3 +1,4 @@
+# SuMu: Estimating Association of Genetic Features with Survival
 
 ## Package description 
 
