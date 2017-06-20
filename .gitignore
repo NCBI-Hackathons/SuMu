@@ -2,12 +2,12 @@ inst/doc
 man
 vignettes/Figs
 
-
 ### R ###
 
 # Session Data files
 .RData
 .Ruserdata
+.Rhistory
 
 # Example code in package build process
 *-Ex.R
