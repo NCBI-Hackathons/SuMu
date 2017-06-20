@@ -27,9 +27,15 @@ fit_rstanarm <- function(
   family = NULL,
   ...
 ) {
-  ## prepare clinical model.matrix
-
   ## prepare genetic data matrix
+  biodata <- prep_biomarker_data(biomarker_data = biomarker_data,
+                                 id = id)
+
+  ## join with clinical data for input to rstanarm
+
+  ## prepare priors to input to rstanarm
+
+  ## update user-supplied formula for rstanarm
 
   ## prepare call to rstanarm
 
@@ -37,7 +43,6 @@ fit_rstanarm <- function(
 
   ## format resulting object
 }
-
 
 #' Function to fit an rstanarm::stan_glm model containing genetic features & clinical data
 #'
