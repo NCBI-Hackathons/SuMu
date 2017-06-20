@@ -12,6 +12,9 @@ vignette: >
 Here we are demonstrating the feasibility of analyzing genomic data using Stan. The first use case is to analyze somatic mutations for association with survival, after adjusting for key clinical variables with known prognostic status.
 
 ```{r setup, include = F, warnings = F, echo = F}
+
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, message=FALSE)
 # library(SuMu)
 devtools::load_all('.')
 library(dplyr)
@@ -22,6 +25,8 @@ library(scales)
 ```
 
 ## Clinical Data
+
+First, download the clinical data. Here we are using the TCGA skin cutaneous melanoma (SKCM) cohort.
 
 ```{r load-clin}
 clin_df <- SuMu::get_tcga_clinical(cohort = "SKCM")
@@ -40,22 +45,31 @@ clin_df2 <- clin_df %>%
 
 ### Review clinical data 
 
-For this analysis we will consider the survival time in `r print(unique(clin_df$_OS_UNIT))` since initial pathologic diagnosis.  
+For this analysis we will consider the survival time in `r print(unique(clin_df['_OS_UNIT']))` since initial pathologic diagnosis.
 
 ```{r plot-survival}
 fit <- survfit(Surv(OS, OS_IND) ~ 1,
-                  data = clin_df)
+                  data = clin_df2)
 survminer::ggsurvplot(fit, ggtheme = theme_minimal())
 ```
 
 Plotting by stage, although the time of 'stage' determination may be confounded if not collected at time of initial diagnosis.
 
 ```{r plot-survival-by-stage}
-
 fit <- survfit(Surv(OS, OS_IND) ~ stage_part1,
                   data = clin_df2)
 survminer::ggsurvplot(fit, ggtheme = theme_minimal(), legend = 'right')
 ```
+
+There also seem to be differences by tumor type.
+
+```{r plot-survival-by-sample-type}
+fit <- survfit(Surv(OS, OS_IND) ~ sample_type,
+                  data = clin_df2)
+survminer::ggsurvplot(fit, legend = "right")
+```
+
+(Aside: I wonder how similar tumor type is to sample type? For example, we could have a metastatic patient where the sample was obtained from the primary tumor. We will want to adjust our genetic data analysis for the sample type but may want to estimate prognosis according to the tumor type?)
 
 A variable like `year_of_initial_pathologic_diagnosis` is guaranteed to be unconfounded since we can safely assume it was collected at the time of diagnosis.
 
@@ -85,10 +99,11 @@ Let's look at the time since initial diagnosis (presumably, the time from enroll
 
 Finally, we can visualize a more comprehesive set of clinical variables.
 
-```{r load-clin}
+```{r analyze-coxph}
 fit <- survival::coxph(Surv(OS, OS_IND) ~
                          age_at_initial_pathologic_diagnosis + 
-                         `ifelse(is.na(breslow_depth_value), 0,  + initial_weight + 
+                         sample_type +
+                         breslow_depth_value + initial_weight + 
                          strata(year_of_initial_pathologic_diagnosis),
                data = clin_df2)
 print(fit)
