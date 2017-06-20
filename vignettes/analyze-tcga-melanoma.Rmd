@@ -38,27 +38,27 @@ clin_df2 <- clin_df %>%
                                    pattern = '(Stage [0I]+).*',
                                    replacement = '\\1'),
                 diagnosis_year_group = cut(year_of_initial_pathologic_diagnosis, breaks = c(1975, 1990, 1995, 2000, 2005, 2010, 2015, 2020), include.lowest = TRUE)
-                ) %>%
-  dplyr::rename(OS = `_OS`, OS_IND = `_OS_IND`)
+                )
 
 ```
 
 ### Review clinical data 
 
-For this analysis we will consider the survival time in `r print(unique(clin_df['_OS_UNIT']))` since initial pathologic diagnosis.
+For this analysis we will consider the survival time in `r print(unique(clin_df['OS_UNIT']))` since initial pathologic diagnosis.
 
 ```{r plot-survival}
 fit <- survfit(Surv(OS, OS_IND) ~ 1,
                   data = clin_df2)
-survminer::ggsurvplot(fit, ggtheme = theme_minimal())
+survminer::ggsurvplot(fit) + 
+  ggtitle('Survival since diagnosis in full cohort')
 ```
 
 Plotting by stage, although the time of 'stage' determination may be confounded if not collected at time of initial diagnosis.
 
 ```{r plot-survival-by-stage}
-fit <- survfit(Surv(OS, OS_IND) ~ stage_part1,
+fit <- survfit(Surv(OS, OS_IND) ~ pathologic_stage,
                   data = clin_df2)
-survminer::ggsurvplot(fit, ggtheme = theme_minimal(), legend = 'right')
+survminer::ggsurvplot(fit, legend = "right")
 ```
 
 There also seem to be differences by tumor type.
@@ -69,6 +69,7 @@ fit <- survfit(Surv(OS, OS_IND) ~ sample_type,
 survminer::ggsurvplot(fit, legend = "right")
 ```
 
+<<<<<<< HEAD
 (Aside: I wonder how similar tumor type is to sample type? For example, we could have a metastatic patient where the sample was obtained from the primary tumor. We will want to adjust our genetic data analysis for the sample type but may want to estimate prognosis according to the tumor type?)
 
 A variable like `year_of_initial_pathologic_diagnosis` is guaranteed to be unconfounded since we can safely assume it was collected at the time of diagnosis.
@@ -76,8 +77,7 @@ A variable like `year_of_initial_pathologic_diagnosis` is guaranteed to be uncon
 ```{r plot-survival-by-year}
 fit <- survfit(Surv(OS, OS_IND) ~ diagnosis_year_group,
                   data = clin_df2)
-survminer::ggsurvplot(fit, ggtheme = theme_minimal(),
-                      legend = 'right')
+survminer::ggsurvplot(fit, legend = 'right')
 ```
 
 This makes it pretty clear that we have a strong "survival" bias to our data. This would suggest that, among people whose diagnosis was made in the 90s, only those who survived long enough to be enrolled were included in the study.
@@ -107,4 +107,19 @@ fit <- survival::coxph(Surv(OS, OS_IND) ~
                          strata(year_of_initial_pathologic_diagnosis),
                data = clin_df2)
 print(fit)
+```
+
+## Somatic Mutations Data
+
+We can download the somatic mutations to supplement the phenotypes.
+
+```{r load-mut}
+mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM")
+```
+
+Check the most frequent mutations.
+
+```{r check-top-muts}
+mut_df$gene_aa = paste0(mut_df$gene, ":", mut_df$Amino_Acid_Change)
+mut_df %>% filter(effect == "Missense_Mutation") %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
 ```
