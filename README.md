@@ -1,4 +1,4 @@
-# Somatic mutations phenotypes
+# SuMu: Estimating Association of Genetic Features with Survival
 
 A pipeline for association of genetic features and phenotypes
 
