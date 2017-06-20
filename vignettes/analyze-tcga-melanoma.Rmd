@@ -13,6 +13,7 @@ Here we are demonstrating the feasibility of analyzing genomic data using Stan. 
 
 ```{r setup, include = F, warnings = F, echo = F}
 # library(SuMu)
+devtools::load_all('.')
 library(dplyr)
 library(survminer)
 library(survival)
@@ -24,6 +25,17 @@ library(scales)
 
 ```{r load-clin}
 clin_df <- SuMu::get_tcga_clinical(cohort = "SKCM")
+
+## format some clinical data variables
+
+clin_df2 <- clin_df %>% 
+  dplyr::mutate(stage_part1 = gsub(pathologic_stage,
+                                   pattern = '(Stage [0I]+).*',
+                                   replacement = '\\1'),
+                diagnosis_year_group = cut(year_of_initial_pathologic_diagnosis, breaks = c(1975, 1990, 1995, 2000, 2005, 2010, 2015, 2020), include.lowest = TRUE)
+                ) %>%
+  dplyr::rename(OS = `_OS`, OS_IND = `_OS_IND`)
+
 ```
 
 ### Review clinical data 
@@ -31,17 +43,53 @@ clin_df <- SuMu::get_tcga_clinical(cohort = "SKCM")
 For this analysis we will consider the survival time in `r print(unique(clin_df$_OS_UNIT))` since initial pathologic diagnosis.  
 
 ```{r plot-survival}
-fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ 1,
+fit <- survfit(Surv(OS, OS_IND) ~ 1,
                   data = clin_df)
-survminer::ggsurvplot(fit) + 
-  ggtitle('Survival since diagnosis in full cohort')
+survminer::ggsurvplot(fit, ggtheme = theme_minimal())
 ```
 
 Plotting by stage, although the time of 'stage' determination may be confounded if not collected at time of initial diagnosis.
 
 ```{r plot-survival-by-stage}
-fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ pathologic_stage,
-                  data = clin_df)
-survminer::ggsurvplot(fit)
+
+fit <- survfit(Surv(OS, OS_IND) ~ stage_part1,
+                  data = clin_df2)
+survminer::ggsurvplot(fit, ggtheme = theme_minimal(), legend = 'right')
 ```
 
+A variable like `year_of_initial_pathologic_diagnosis` is guaranteed to be unconfounded since we can safely assume it was collected at the time of diagnosis.
+
+```{r plot-survival-by-year}
+fit <- survfit(Surv(OS, OS_IND) ~ diagnosis_year_group,
+                  data = clin_df2)
+survminer::ggsurvplot(fit, ggtheme = theme_minimal(),
+                      legend = 'right')
+```
+
+This makes it pretty clear that we have a strong "survival" bias to our data. This would suggest that, among people whose diagnosis was made in the 90s, only those who survived long enough to be enrolled were included in the study.
+
+Let's look at a histogram of years of initial diagnosis.
+
+```{r summary-init-diagnosis}
+ggplot(clin_df2, aes(x = year_of_initial_pathologic_diagnosis,
+                     fill = diagnosis_year_group)) + 
+  geom_histogram() + 
+  theme_minimal()
+```
+
+Let's look at the time since initial diagnosis (presumably, the time from enrollment to diagnosis).
+
+```{r plot-time-since-diagnosis}
+
+```
+
+Finally, we can visualize a more comprehesive set of clinical variables.
+
+```{r load-clin}
+fit <- survival::coxph(Surv(OS, OS_IND) ~
+                         age_at_initial_pathologic_diagnosis + 
+                         `ifelse(is.na(breslow_depth_value), 0,  + initial_weight + 
+                         strata(year_of_initial_pathologic_diagnosis),
+               data = clin_df2)
+print(fit)
+```
