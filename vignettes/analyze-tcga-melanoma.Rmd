@@ -15,6 +15,7 @@ Here we are demonstrating the feasibility of analyzing genomic data using Stan. 
 
 knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
                       echo=TRUE, warning=FALSE, message=FALSE)
+
 # library(SuMu)
 devtools::load_all('.')
 library(dplyr)
@@ -22,6 +23,9 @@ library(survminer)
 library(survival)
 library(ggplot2)
 library(scales)
+library(tidyr)
+library(rstanarm)
+options(mc.cores = 4)
 ```
 
 ## Clinical Data
@@ -37,7 +41,12 @@ clin_df2 <- clin_df %>%
   dplyr::mutate(stage_part1 = gsub(pathologic_stage,
                                    pattern = '(Stage [0I]+).*',
                                    replacement = '\\1'),
-                diagnosis_year_group = cut(year_of_initial_pathologic_diagnosis, breaks = c(1975, 1990, 1995, 2000, 2005, 2010, 2015, 2020), include.lowest = TRUE)
+                diagnosis_year_group = cut(year_of_initial_pathologic_diagnosis,
+                                           breaks = c(1975, 1990, 1995, 2000,
+                                                      2005, 2010, 2015, 2020),
+                                           include.lowest = TRUE),
+                os_10y = ifelse(OS_IND == 1 & OS <= 10*365.25, 1, 0),
+                sample = sampleID
                 )
 
 ```
@@ -122,4 +131,58 @@ Check the most frequent mutations.
 mut_df_missense = mut_df %>% dplyr::filter(effect == "Missense_Mutation")
 mut_df_missense$gene_aa = paste0(mut_df_missense$gene, ":", mut_df_missense$Amino_Acid_Change)
 mut_df_missense %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
+```
+
+## Prepare mutation data for analysis
+
+```{r prep-mut-glm}
+mutation_counts <- mut_df %>%
+  dplyr::left_join(clin_df2 %>% 
+                     dplyr::select(sample, os_10y),
+                   by = 'sample') %>%
+  dplyr::filter(!is.na(os_10y)) %>%
+  dplyr::filter(effect == "Missense_Mutation") %>%
+  dplyr::group_by(gene) %>%
+  dplyr::mutate(gene_count = n()) %>%
+  dplyr::ungroup() 
+
+top_genes <- mutation_counts %>%
+  dplyr::distinct(gene, .keep_all = TRUE) %>%
+  dplyr::top_n(gene_count, n = 10) %>%
+  dplyr::select(gene)
+
+mutation_matrix <- mutation_counts %>%
+  dplyr::semi_join(top_genes) %>%
+  dplyr::distinct(sample, gene_aa, DNA_VAF) %>%
+  tidyr::spread(key = gene_aa, DNA_VAF, fill = 0)
+
+glm_df <- mutation_matrix %>%
+  dplyr::left_join(clin_df2 %>% 
+                     dplyr::select(sample, os_10y),
+                   by = 'sample')
+```
+
+## Fit `stan-glm` model to these genetic data, without clinical covariates
+
+```{r fit-stan-glm}
+# construct input formula
+gene_names <- names(mutation_matrix)[-1]
+my_formula <- as.formula(
+  stringr::str_c('os_10y',
+                 '~ `',
+                 stringr::str_c(gene_names,
+                                collapse = '` + `'),
+                 '`')
+  )
+
+
+# call to `stan_glm`
+glmfit <- rstanarm::stan_glm(
+  data = glm_df,
+  formula = my_formula,
+  sparse = TRUE,
+  family = binomial(),
+  chains = 4,
+  prior = rstanarm::hs_plus()
+)
 ```
