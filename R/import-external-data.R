@@ -16,6 +16,8 @@
 get_tcga_clinical <- function(cohort) {
   clin_matrix_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/", cohort, "_clinicalMatrix")
   clin = readr::read_tsv(clin_matrix_url)
+  # fix columns starting with underscores (causes issues with some tools)
+  colnames(clin) = gsub("^_", "", colnames(clin))
   return(clin)
 }
 

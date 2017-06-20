@@ -33,7 +33,7 @@ clin_df <- SuMu::get_tcga_clinical(cohort = "SKCM")
 For this analysis we will consider the survival time in `r print(unique(clin_df$_OS_UNIT))` since initial pathologic diagnosis.
 
 ```{r plot-survival}
-fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ 1,
+fit <- survfit(Surv(OS, OS_IND) ~ 1,
                   data = clin_df)
 survminer::ggsurvplot(fit) + 
   ggtitle('Survival since diagnosis in full cohort')
@@ -42,7 +42,7 @@ survminer::ggsurvplot(fit) +
 Plotting by stage, although the time of 'stage' determination may be confounded if not collected at time of initial diagnosis.
 
 ```{r plot-survival-by-stage}
-fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ pathologic_stage,
+fit <- survfit(Surv(OS, OS_IND) ~ pathologic_stage,
                   data = clin_df)
 survminer::ggsurvplot(fit, legend = "right")
 ```
@@ -55,3 +55,17 @@ fit <- survfit(Surv(`_OS`, `_OS_IND`) ~ sample_type,
 survminer::ggsurvplot(fit, legend = "right")
 ```
 
+## Somatic Mutations Data
+
+We can download the somatic mutations to supplement the phenotypes.
+
+```{r load-mut}
+mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM")
+```
+
+Check the most frequent mutations.
+
+```{r check-top-muts}
+mut_df$gene_aa = paste0(mut_df$gene, ":", mut_df$Amino_Acid_Change)
+mut_df %>% filter(effect == "Missense_Mutation") %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
+```
