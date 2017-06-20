@@ -42,6 +42,8 @@ get_tcga_somatic_mutations <- function(cohort, call_type = "broad") {
 
 #' Retrieve gene expression data for a TCGA cohort
 #'
+#' TCGA skin cutaneous melanoma (SKCM) gene expression by RNAseq, mean-normalized (per gene) across all TCGA cohorts.
+#' Values in this dataset are generated at UCSC by combining "gene expression RNAseq" values of all TCGA cohorts, values are then mean-centered per gene, then extracting the converted data only belongs to the this cohort.
 #' The values are log2 gene expression values mean-normalized (per gene) across all TCGA cohorts.
 #'
 #' @param cohort four character cohort abbreviation (SKCM, LUAD, BRCA, etc.)
@@ -79,4 +81,26 @@ get_tcga_methylation_450k <- function(cohort) {
   meth_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/HumanMethylation450")
   meth = readr::read_tsv(meth_url)
   return(meth)
+}
+
+#' Retrieve gene-level copy number data for a TCGA cohort
+#'
+#' Copy number profile was measured experimentally using whole genome microarray at a TCGA genome characterization center.
+#' Subsequently, GISTIC2 method was applied using the TCGA FIREHOSE pipeline to produce gene-level copy number estimates.
+#' GISTIC2 further thresholded the estimated values to -2,-1,0,1,2, representing homozygous deletion, single copy deletion, diploid normal copy, low-level copy number amplification, or high-level copy number amplification.
+#'
+#' @param cohort four character cohort abbreviation (SKCM, LUAD, BRCA, etc.)
+#'
+#' @return Data frame of copy number values (gene-level).
+#'
+#' @import readr
+#'
+#' @examples
+#' cnv_gene = get_tcga_copy_number_gene(cohort = "SKCM")
+#'
+#' @export
+get_tcga_copy_number_gene <- function(cohort) {
+  cnv_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/Gistic2_CopyNumber_Gistic2_all_thresholded.by_genes")
+  cnv = readr::read_tsv(cnv_url)
+  return(cnv)
 }

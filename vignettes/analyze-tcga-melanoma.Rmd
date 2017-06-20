@@ -133,6 +133,52 @@ mut_df_missense$gene_aa = paste0(mut_df_missense$gene, ":", mut_df_missense$Amin
 mut_df_missense %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
 ```
 
+## Copy Number and Gene Expression Data
+
+We can also download gene expression and gene-level copy number data.
+
+```{r load-exp-cnv}
+exp = get_tcga_gene_expression(cohort = "SKCM")
+cnv_gene = get_tcga_copy_number_gene(cohort = "SKCM")
+```
+
+Gene expression and copy number data should correlate. We can check.
+
+```{r exp-cnv-matrix}
+# convert to matrix
+exp_mat = exp %>% as.data.frame %>% tibble::column_to_rownames("sample") %>% as.matrix
+dim(exp_mat)
+cnv_mat = cnv_gene %>% as.data.frame %>% tibble::column_to_rownames("Gene Symbol") %>% as.matrix
+dim(cnv_mat)
+
+# get genes and samples with both expression and copy number data
+common_samples = intersect(colnames(cnv_mat), colnames(exp_mat))
+common_genes = intersect(rownames(cnv_mat), rownames(exp_mat))
+
+# subset to common genes and samples
+exp_mat = exp_mat[common_genes, common_samples]
+dim(exp_mat)
+cnv_mat = cnv_mat[common_genes, common_samples]
+dim(cnv_mat)
+
+# get highly expressed genes
+top_genes = rowMeans(exp_mat) %>% sort %>% rev %>% head(5000) %>% names %>% sort
+
+# select 10 random samples
+random_samples = sample(common_samples, 10)
+
+# keep only highly expressed genes
+exp_mat = exp_mat[top_genes, random_samples]
+dim(exp_mat)
+cnv_mat = cnv_mat[top_genes, random_samples]
+dim(cnv_mat)
+
+# run correlations
+diag(cor(cnv_mat, exp_mat)) %>% round(3) %>% as.data.frame
+```
+
+There is some correlation between expression and copy number data as expected.
+
 ## Prepare mutation data for analysis
 
 ```{r prep-mut-glm}
