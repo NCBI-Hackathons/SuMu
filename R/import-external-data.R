@@ -4,10 +4,12 @@
 #' Retrieve clinical matrix for a TCGA cohort.
 #'
 #' @param cohort four character cohort abbreviation (SKCM, LUAD, BRCA, etc.)
-#' @return clinical matrix data frame
-#' @import readr
-#' @examples
 #'
+#' @return clinical matrix data frame
+#'
+#' @import readr
+#'
+#' @examples
 #' get_tcga_clinical(cohort = "SKCM")
 #'
 #' @export
@@ -20,10 +22,12 @@ get_tcga_clinical <- function(cohort) {
 #' Retrieve somatic mutations for a TCGA cohort.
 #'
 #' @param cohort four character cohort abbreviation (SKCM, LUAD, BRCA, etc.)
-#' @return somatic mutation SNPs and small INDELs data frame
-#' @import readr
-#' @examples
 #'
+#' @return somatic mutation SNPs and small INDELs data frame
+#'
+#' @import readr
+#'
+#' @examples
 #' get_tcga_somatic_mutations(cohort = "SKCM")
 #'
 #' @export
