@@ -305,13 +305,27 @@ glmfit_clingen <- rstanarm::stan_glmer(
 
 Our function syntax will look like the following.
 
-```{r}
+
+```{r, eval=FALSE, include=TRUE, echo = TRUE}
 
 fit <- fit_glm(
   data = clin_df,
   formula = os_10y ~ rescale_.. + `__BIO__`,
   biomarker_data = mut_df,
-  biomarker_formula = 1 ~ gene_aa + (1|effect) + (1|gene),
+  biomarker_formula = 1 ~ (1|gene_aa) + (1|gene) + (1|effect),
+  id = 'sample'
+)
+```
+
+It currently supports the following
+
+```{r, eval=FALSE, include=TRUE, echo = TRUE}
+
+fit <- fit_glm(
+  data = clin_df,
+  formula = os_10y ~ age + weight + tumor_type,
+  biomarker_data = mut_df,
+  biomarker_formula = DNA_VAF ~ gene_aa,
   id = 'sample'
 )
 ```
