@@ -295,22 +295,22 @@ rescale <- function(x) {
 }
 
 clin_df3 <- clin_df2 %>%
-  dplyr::mutate_each(.funs = 'rescale',
-            age_at_initial_pathologic_diagnosis, 
-            sample_type,
-            initial_weight
+  dplyr::mutate(
+    rescale_age_at_initial_pathologic_diagnosis = rescale(age_at_initial_pathologic_diagnosis), 
+    rescale_initial_weight = rescale(initial_weight),
+    rescale_breslow_depth_value = rescale(breslow_depth_value)
   ) 
 
 
-glmfit_clingen <- rstanarm::stan_glmer(
+glmfit_clin <- rstanarm::stan_glmer(
   os_10y ~
     rescale_age_at_initial_pathologic_diagnosis + 
-    rescale_sample_type +
+    sample_type +
     rescale_breslow_depth_value + 
     rescale_initial_weight + 
     (
       rescale_age_at_initial_pathologic_diagnosis + 
-        rescale_sample_type +
+        sample_type +
         rescale_breslow_depth_value + 
         rescale_initial_weight
       | diagnosis_year_group
@@ -326,6 +326,8 @@ print(glmfit_clin)
 # GLM(er) model with clinical + genetic data
 
 ```{r fit-stan-glm3}
+mutation_matrix3 <- SuMu::prep_biomarker_data()
+
 glm_df3 <- clin_df3 %>%
   dplyr::inner_join(mutation_matrix2,
                    by = 'sample')
@@ -333,12 +335,12 @@ glm_df3 <- clin_df3 %>%
 # construct input formula
 clinical_formula <- os_10y ~
     rescale_age_at_initial_pathologic_diagnosis + 
-    rescale_sample_type +
+    sample_type +
     rescale_breslow_depth_value + 
     rescale_initial_weight + 
     (
       rescale_age_at_initial_pathologic_diagnosis + 
-        rescale_sample_type +
+        sample_type +
         rescale_breslow_depth_value + 
         rescale_initial_weight
       | diagnosis_year_group
@@ -351,13 +353,13 @@ gene_subformula <- stringr::str_c('`',
 my_formula3 <- update(clinical_formula,
   stringr::str_c('~ . ',
                  gene_subformula,
-                 stringr::str_c('(', gene_subformula,'|| diagnosis_year_group)'),
+                 stringr::str_c('(', gene_subformula, '| diagnosis_year_group)'),
                  sep = '+')
   )
 
 
 # call to `stan_glm`
-glmfit3 <- rstanarm::stan_glmer(
+glmfit_clingen <- rstanarm::stan_glmer(
   data = glm_df3,
   formula = my_formula3,
   sparse = TRUE,
