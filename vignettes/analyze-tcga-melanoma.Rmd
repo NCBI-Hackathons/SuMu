@@ -186,9 +186,11 @@ mutation_counts <- mut_df %>%
                      dplyr::select(sample, os_10y),
                    by = 'sample') %>%
   dplyr::filter(!is.na(os_10y)) %>%
-  dplyr::filter(effect == "Missense_Mutation") %>%
+  dplyr::mutate(gene_effect = stringr::str_c(gene, effect, sep=".")) %>%
   dplyr::group_by(gene) %>%
   dplyr::mutate(gene_count = n()) %>%
+  dplyr::group_by(gene_effect) %>%
+  dplyr::mutate(gene_effect_count = n()) %>%
   dplyr::ungroup() 
 
 top_genes <- mutation_counts %>%
@@ -198,8 +200,12 @@ top_genes <- mutation_counts %>%
 
 mutation_matrix <- mutation_counts %>%
   dplyr::semi_join(top_genes) %>%
-  dplyr::distinct(sample, gene_aa, DNA_VAF) %>%
-  tidyr::spread(key = gene_aa, DNA_VAF, fill = 0)
+  dplyr::group_by(gene_effect, sample) %>%
+  dplyr::mutate(sum_vaf = sum(DNA_VAF),
+                mean_vaf = mean(DNA_VAF)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(sample, gene_effect, mean_vaf) %>%
+  tidyr::spread(key = gene_effect, mean_vaf, fill = 0)
 
 glm_df <- mutation_matrix %>%
   dplyr::left_join(clin_df2 %>% 
