@@ -14,7 +14,7 @@
 #'
 #' @export
 get_tcga_clinical <- function(cohort) {
-  clin_matrix_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/", cohort, "_clinicalMatrix")
+  clin_matrix_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/", cohort, "_clinicalMatrix.gz")
   clin = readr::read_tsv(clin_matrix_url)
   # fix columns starting with underscores (causes issues with some tools)
   colnames(clin) = gsub("^_", "", colnames(clin))
@@ -35,7 +35,7 @@ get_tcga_clinical <- function(cohort) {
 #'
 #' @export
 get_tcga_somatic_mutations <- function(cohort, call_type = "broad") {
-  mut_matrix_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/mutation_", call_type)
+  mut_matrix_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/mutation_", call_type, '.gz')
   mut = readr::read_tsv(mut_matrix_url)
   return(mut)
 }
@@ -57,7 +57,7 @@ get_tcga_somatic_mutations <- function(cohort, call_type = "broad") {
 #'
 #' @export
 get_tcga_gene_expression <- function(cohort) {
-  exp_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/HiSeqV2_PANCAN")
+  exp_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/HiSeqV2_PANCAN.gz")
   exp = readr::read_tsv(exp_url)
   return(exp)
 }
@@ -78,7 +78,7 @@ get_tcga_gene_expression <- function(cohort) {
 #'
 #' @export
 get_tcga_methylation_450k <- function(cohort) {
-  meth_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/HumanMethylation450")
+  meth_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/HumanMethylation450.gz")
   meth = readr::read_tsv(meth_url)
   return(meth)
 }
@@ -100,7 +100,7 @@ get_tcga_methylation_450k <- function(cohort) {
 #'
 #' @export
 get_tcga_copy_number_gene <- function(cohort) {
-  cnv_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/Gistic2_CopyNumber_Gistic2_all_thresholded.by_genes")
+  cnv_url = paste0("https://tcga.xenahubs.net/download/TCGA.", cohort, ".sampleMap/Gistic2_CopyNumber_Gistic2_all_thresholded.by_genes.gz")
   cnv = readr::read_tsv(cnv_url)
   return(cnv)
 }
