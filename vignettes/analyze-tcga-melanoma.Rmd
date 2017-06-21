@@ -195,7 +195,7 @@ mutation_counts <- mut_df %>%
 
 top_genes <- mutation_counts %>%
   dplyr::distinct(gene, .keep_all = TRUE) %>%
-  dplyr::top_n(gene_count, n = 10) %>%
+  dplyr::top_n(gene_count, n = 100) %>%
   dplyr::select(gene)
 
 mutation_matrix <- mutation_counts %>%
