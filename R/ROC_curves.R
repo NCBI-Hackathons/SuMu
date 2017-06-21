@@ -1,9 +1,25 @@
-ROC_ <- function(data_frame, response_name, fitted_model){
-  
- # '''This function takes as inputs the dataframe with the raw data, 
- # the column name of the response variable, and the fitted model (trained on a different),
- # calculates AUC for the model and spits out some pretty plots too (no plots yet)'''
-  
+# Functions for for calculating AUC from posterior distributions of stan models
+
+
+#' Function that uses the raw data and a stanreg object of the model fitted with them.
+#'
+#' It first uses the model in a generative fashion to generate posterior distributions for each observation.
+#' It uses the
+#' @param data_frame the dataframe containing clinical data
+#' @param response_name the column name of the data_frame that has the resonse variable
+#' @param fitted_model the stanreg fitted model
+#'
+#' @return numeric AUC
+#' @import survminer
+#' @import survival
+#' @import dplyr
+#' @import ggplot2
+#' @import scales
+#' @import rstan
+#' @import rstanarm
+#' @import zoo
+#' @export
+auc <- function(data_frame, response_name, fitted_model){
   var = data_frame[response_name][,1]  #observed outcomes
   ind_vars = data_frame[ , ! colnames(data_frame) %in% c(response_name) ] #only independent variables
   p_data <- posterior_predict(fitted_model, newdata=ind_vars)
