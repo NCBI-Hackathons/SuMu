@@ -1,5 +1,7 @@
 # SuMu: Estimating Association of Genetic Features with Survival
 
+SuMu is an R package that aims to make it easier to estimate the association of genetic features (such as mutations, gene expression, copy number, or methylation) with survival (time from diagnosis/treatment to clinical event) or benefit from therapy, in the context of clinical data.
+
 ## Package description 
 
 This package aims to make it easier to fit [Stan](https://mc-stan.org) models in R to estimate the association of genetic variants with survival (time from diagnosis/treatment to clinical event) or benefit from therapy, in the context of clinical data.
