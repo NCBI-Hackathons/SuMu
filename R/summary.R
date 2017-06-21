@@ -95,7 +95,8 @@ data_summary = function(data,features)
 
 #' Function for exploration of specific genetic feature
 #'
-#' @param data stanreg object with fit data
+#' @param mutations matrix with samples as rows, mutations as columns
+#' @param clinical matrix of TCGA clinical data
 #' @param feature genetic variant (or clinical characteristic?) of interest
 #'
 #' @import survminer
@@ -104,16 +105,16 @@ data_summary = function(data,features)
 #' Plot survival of population vs survival of subjects w/ genetic variant overlay w/ acutal data
 #' Plot bar graph of covariance w/ genetic variant of clinical data
 #'
-view_feature = function(data, feature)
+view_feature = function(mutations, clinical, feature)
 {
   #Plot observed data
   #Create survival table
   survival_table_cols=c("sampleID","OS","OS_IND")
-  survival_table=clin_df2[survival_table_cols]
+  survival_table=clinical[survival_table_cols]
 
     #Identify samples with feature of interest & annotate samples w/o sequencing data
-    mutated_samples=mutation_matrix$sample[mutation_matrix[feature]!=0]#sample names with feature
-    not_sequenced=clin_df$sampleID[match(clin_df$sampleID,mutation_matrix$sample,nomatch=0)==0]
+    mutated_samples=mutations$sample[mutations[feature]!=0]#sample names with feature
+    not_sequenced=clinical$sampleID[match(clinical$sampleID,mutations$sample,nomatch=0)==0]
 
     for (i in 1:nrow(survival_table))
     {
@@ -133,6 +134,7 @@ view_feature = function(data, feature)
   survminer::ggsurvplot(fit, legend = "right", title = feature)
 
   #Plot simulated data
+
 
   #Plot sorted correlations
 
