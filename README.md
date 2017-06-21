@@ -11,6 +11,16 @@ install_github("NCBI-Hackathons/SuMu")
 
 ## Usage
 
+```
+fit <- fit_glm(
+  data = clin_df,
+  formula = os_10y ~ rescale_.. + `__BIO__`,
+  biomarker_data = mut_df,
+  biomarker_formula = 1 ~ gene_aa + (1|effect) + (1|gene),
+  id = 'sample'
+)
+```
+
 ## Description
 
 This package aims to make it easier to fit [Stan](https://mc-stan.org) models in R to estimate the association of genetic variants with survival (time from diagnosis/treatment to clinical event) or benefit from therapy, in the context of clinical data.
