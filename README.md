@@ -4,6 +4,11 @@ SuMu is an R package that aims to make it easier to estimate the association of 
 
 ## Installation
 
+```
+library(devtools)
+install_github("NCBI-Hackathons/SuMu")
+```
+
 ## Usage
 
 ## Description
