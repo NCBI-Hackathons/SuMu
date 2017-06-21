@@ -290,35 +290,76 @@ glmfit2 <- rstanarm::stan_glm(
 # GLM model including clinical data only
 
 ```{r glm-model-clin}
-glmfit_clin <- rstanarm::stan_glmer(
+rescale <- function(x) {
+  (x - mean(x, na.rm=T))/(2*sd(x, na.rm=T))
+}
+
+clin_df3 <- clin_df2 %>%
+  dplyr::mutate_each(.funs = 'rescale',
+            age_at_initial_pathologic_diagnosis, 
+            sample_type,
+            initial_weight
+  ) 
+
+
+glmfit_clingen <- rstanarm::stan_glmer(
   os_10y ~
-    age_at_initial_pathologic_diagnosis + 
-    sample_type +
-    breslow_depth_value + initial_weight + 
-    (age_at_initial_pathologic_diagnosis + 
-       sample_type +
-       breslow_depth_value + 
-       initial_weight 
-     | year_of_initial_pathologic_diagnosis),
-               data = clin_df2)
-print(fit)
+    rescale_age_at_initial_pathologic_diagnosis + 
+    rescale_sample_type +
+    rescale_breslow_depth_value + 
+    rescale_initial_weight + 
+    (
+      rescale_age_at_initial_pathologic_diagnosis + 
+        rescale_sample_type +
+        rescale_breslow_depth_value + 
+        rescale_initial_weight
+      | diagnosis_year_group
+      ),
+  data = clin_df3,
+  init_r = 1,
+  family = binomial()
+)
+
+print(glmfit_clin)
 ```
+
+# GLM(er) model with clinical + genetic data
+
 ```{r fit-stan-glm3}
+glm_df3 <- clin_df3 %>%
+  dplyr::inner_join(mutation_matrix2,
+                   by = 'sample')
+
 # construct input formula
-gene_names2 <- names(mutation_matrix2)[-1]
-my_formula2 <- as.formula(
-  stringr::str_c('os_10y',
-                 '~ `',
+clinical_formula <- os_10y ~
+    rescale_age_at_initial_pathologic_diagnosis + 
+    rescale_sample_type +
+    rescale_breslow_depth_value + 
+    rescale_initial_weight + 
+    (
+      rescale_age_at_initial_pathologic_diagnosis + 
+        rescale_sample_type +
+        rescale_breslow_depth_value + 
+        rescale_initial_weight
+      | diagnosis_year_group
+      )
+gene_names3 <- names(mutation_matrix2)[-1]
+gene_subformula <- stringr::str_c('`',
                  stringr::str_c(gene_names2,
                                 collapse = '` + `'),
                  '`')
+my_formula3 <- update(clinical_formula,
+  stringr::str_c('~ . ',
+                 gene_subformula,
+                 stringr::str_c('(', gene_subformula,'|| diagnosis_year_group)'),
+                 sep = '+')
   )
 
 
 # call to `stan_glm`
-glmfit2 <- rstanarm::stan_glm(
-  data = glm_df2,
-  formula = my_formula2,
+glmfit3 <- rstanarm::stan_glmer(
+  data = glm_df3,
+  formula = my_formula3,
   sparse = TRUE,
   family = binomial(),
   chains = 4,
