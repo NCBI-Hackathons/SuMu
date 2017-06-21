@@ -118,7 +118,7 @@ view_feature = function(mutations, clinical, feature)
       if(is.element(survival_table[i,1],mutated_samples))
       {  survival_table[i,4]="Mutated"
       } else if(is.element(survival_table[i,1],not_sequenced))
-      {    survival_table[i,4]="Not_sequenced"
+      {    survival_table[i,4]="No_Mut_Data"
       } else
       {    survival_table[i,4]="No_Mutation_Detected"}
     }
@@ -126,7 +126,7 @@ view_feature = function(mutations, clinical, feature)
     colnames(survival_table)[4]="Status"
 
   # Visualize with survival curve
-  fit <- survfit(Surv(OS, OS_IND) ~ Status,
+  fit <- survival::survfit(Surv(OS, OS_IND) ~ Status,
                  data = survival_table)
   survminer::ggsurvplot(fit, legend = "right", title = feature)
 
