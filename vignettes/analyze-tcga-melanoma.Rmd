@@ -408,11 +408,13 @@ clinical_formula <- os_10y ~
     sample_type +
     rescale_breslow_depth_value + 
     rescale_initial_weight + 
+    `__BIOMARKERS__` +
     (
       rescale_age_at_initial_pathologic_diagnosis + 
         sample_type +
         rescale_breslow_depth_value + 
-        rescale_initial_weight
+        rescale_initial_weight + 
+        `__BIOMARKERS__`
       | diagnosis_year_group
       )
 gene_names3 <- names(mutation_matrix2)[-1]
@@ -420,7 +422,15 @@ gene_subformula <- stringr::str_c('`',
                  stringr::str_c(gene_names2,
                                 collapse = '` + `'),
                  '`')
-my_formula3 <- update(clinical_formula,
+my_formula3 <- stringr::str_c(
+  as.character(clinical_formula)[2],
+  as.character(clinical_formula)[3],
+  sep = as.character(clinical_formula)[1])
+my_formula3 <- as.formula(gsub(my_formula3, 
+                               pattern = '`__BIOMARKERS__`',
+                               replacement = gene_subformula))
+
+update(clinical_formula,
   stringr::str_c('~ . ',
                  gene_subformula,
                  stringr::str_c('(', gene_subformula, '| diagnosis_year_group)'),
