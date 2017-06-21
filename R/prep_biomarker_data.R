@@ -2,6 +2,7 @@
 
 
 #' Function to prepare biomarker data matrix for analysis
+#'
 #' @param data the dataframe containing clinical data
 #' @param biomarker_data a dataframe containing genetic features / potential biomarkers.
 #'           Should be provided in denomalized or long format, with one record per subject*marker
@@ -88,6 +89,7 @@ prep_biomarker_data <- function(data,
 }
 
 #' Helper function to convert biomarker_matrix (wide-format) to data (long-format)
+#'
 #' @param biomarker_matrix a matrix containing genetic features / potential biomarkers.
 #'           Should have dimensions NxG where N: number of subjects and G: number features
 #'           Can have an ID column (if `id` param provided) or have rownames set to ID values.
@@ -97,6 +99,7 @@ prep_biomarker_data <- function(data,
 #'          as the clinical data.
 #' @param id_colname (optional) name to use when creating the id, if not provided.
 #' @import assertthat tidyr
+#'
 #' @return long-format data.frame with attributes id_colname & biomarker_formula
 convert_biom_matrix_to_data <- function(biomarker_matrix, id, id_colname = id) {
   ## populate temporary id column if one not given
@@ -118,6 +121,7 @@ convert_biom_matrix_to_data <- function(biomarker_matrix, id, id_colname = id) {
 }
 
 #' Helper function to convert biomarker_data (long-format) to biomarker_matrix (wide-format)
+#'
 #' @param biomarker_data a dataframe containing genetic features / potential biomarkers.
 #'           Should be provided in denomalized or long format, with one record per subject*marker
 #'           An ID column is required with this data format.
@@ -127,7 +131,9 @@ convert_biom_matrix_to_data <- function(biomarker_matrix, id, id_colname = id) {
 #' @param id (required) name of id column
 #' @param .fun (optional) function to use when summarizing values, if more than one exists per ID.
 #'         defaults to NULL (do not summarize).
+#'
 #' @import assertthat tidyr dplyr
+#'
 #' @return wide-format data.frame with attributes
 convert_biom_data_to_matrix <- function(biomarker_data,
                                         id,
@@ -167,7 +173,7 @@ convert_biom_data_to_matrix <- function(biomarker_data,
 
   ## confirm no duplicates per ID
   biomarker_data_deduped <- biomarker_data %>%
-    dplyr::select(matches(value_colname), matches(id_colname), matches(biomarker_colname)) %>%
+    dplyr::select_(value_colname, id_colname, biomarker_colname) %>%
     dplyr::distinct_(value_colname, id_colname, biomarker_colname)
   if (nrow(biomarker_data_deduped) !=
       nrow(distinct_(biomarker_data_deduped, id_colname, biomarker_colname))
