@@ -149,7 +149,7 @@ Gene expression and copy number data should correlate. We can check.
 
 ```{r exp-cnv-matrix}
 # convert to matrix
-exp_mat = exp %>% as.data.frame %>% tibble::column_to_rownames("sample") %>% as.matrix
+exp_mat = exp_data %>% as.data.frame %>% tibble::column_to_rownames("sample") %>% as.matrix
 dim(exp_mat)
 cnv_mat = cnv_gene %>% as.data.frame %>% tibble::column_to_rownames("Gene Symbol") %>% as.matrix
 dim(cnv_mat)
@@ -262,6 +262,6 @@ glmfit <- rstanarm::stan_glm(
 ```{}
 summary_table=feature_table(glmfit)
 feature_graph(glmfit)
-view_feature(mutation_matrix,clin_df2,rownames(summary_table)[1])
-view_feature(mutation_matrix,clin_df2,rownames(summary_table)[nrow(summary_table)])
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[1]))
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[nrow(summary_table)]))
 ```
