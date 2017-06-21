@@ -123,7 +123,10 @@ print(fit)
 We can download the somatic mutations to supplement the phenotypes.
 
 ```{r load-mut}
-mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM")
+mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM") %>%
+  dplyr::mutate(gene_aa = paste0(gene, ".", Amino_Acid_Change),
+                gene_effect = paste0(gene, ".", effect)
+                )
 ```
 
 Check the most frequent mutations.
@@ -134,182 +137,19 @@ mut_df_missense$gene_aa = paste0(mut_df_missense$gene, ":", mut_df_missense$Amin
 mut_df_missense %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame %>% head(10)
 ```
 
-## Copy Number and Gene Expression Data
+Filter to top genes
 
-We can also download gene expression and gene-level copy number data.
-
-```{r load-exp-cnv}
-exp = get_tcga_gene_expression(cohort = "SKCM")
-cnv_gene = get_tcga_copy_number_gene(cohort = "SKCM")
-```
-
-Gene expression and copy number data should correlate. We can check.
-
-```{r exp-cnv-matrix}
-# convert to matrix
-exp_mat = exp %>% as.data.frame %>% tibble::column_to_rownames("sample") %>% as.matrix
-dim(exp_mat)
-cnv_mat = cnv_gene %>% as.data.frame %>% tibble::column_to_rownames("Gene Symbol") %>% as.matrix
-dim(cnv_mat)
-
-# get genes and samples with both expression and copy number data
-common_samples = intersect(colnames(cnv_mat), colnames(exp_mat))
-common_genes = intersect(rownames(cnv_mat), rownames(exp_mat))
-
-# subset to common genes and samples
-exp_mat = exp_mat[common_genes, common_samples]
-dim(exp_mat)
-cnv_mat = cnv_mat[common_genes, common_samples]
-dim(cnv_mat)
-
-# get highly expressed genes
-top_genes = rowMeans(exp_mat) %>% sort %>% rev %>% head(5000) %>% names %>% sort
-
-# select 10 random samples
-random_samples = sample(common_samples, 10)
-
-# keep only highly expressed genes
-exp_mat = exp_mat[top_genes, random_samples]
-dim(exp_mat)
-cnv_mat = cnv_mat[top_genes, random_samples]
-dim(cnv_mat)
-
-# run correlations
-diag(cor(cnv_mat, exp_mat)) %>% round(3) %>% as.data.frame
-```
-
-There is some correlation between expression and copy number data as expected.
-
-# GLM model with sample of genetic data 
-
-## Prepare mutation data for analysis (by specific mutation)
-
-Quick example using just the top 5 most common mutations.
-
-```{r prep-mut-glm-aa}
-mutation_counts <- mut_df %>%
-  dplyr::filter(effect == "Missense_Mutation") %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample') %>%
-  dplyr::filter(!is.na(os_10y)) %>%
-  dplyr::mutate(gene_aa = stringr::str_c(gene, Amino_Acid_Change, sep=":")) %>%
+```{r}
+top_genes <- mut_df %>%
   dplyr::group_by(gene) %>%
   dplyr::mutate(gene_count = n()) %>%
-  dplyr::group_by(gene_aa) %>%
-  dplyr::mutate(gene_aa_count = n()) %>%
-  dplyr::ungroup()
-
-top_aa <- mutation_counts %>%
-  dplyr::distinct(gene_aa, .keep_all = TRUE) %>%
-  dplyr::top_n(gene_aa_count, n = 5) %>%
-  dplyr::select(gene_aa)
-
-mutation_matrix <- mutation_counts %>%
-  dplyr::semi_join(top_aa) %>%
-  dplyr::group_by(gene_aa, sample) %>%
-  dplyr::mutate(sum_vaf = sum(DNA_VAF),
-                mean_vaf = mean(DNA_VAF)) %>%
   dplyr::ungroup() %>%
-  dplyr::distinct(sample, gene_aa, mean_vaf) %>%
-  tidyr::spread(key = gene_aa, mean_vaf, fill = 0)
-
-glm_df <- mutation_matrix %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample')
-```
-
-```{r fit-stan-glm-aa}
-# construct input formula
-gene_names <- names(mutation_matrix)[-1]
-my_formula <- as.formula(
-  stringr::str_c('os_10y',
-                 '~ `',
-                 stringr::str_c(gene_names,
-                                collapse = '` + `'),
-                 '`')
-  )
-my_formula
-
-# call to `stan_glm`
-glmfit <- rstanarm::stan_glm(
-  data = glm_df,
-  formula = my_formula,
-  sparse = TRUE,
-  family = binomial(),
-  chains = 4,
-  prior = rstanarm::hs_plus(),
-  adapt_delta = 0.999
-)
-```
-
-We get an error: "Markov chains did not converge! Do not analyze results!"
-
-We can diagnose sampling problems using the pairs plot.
-
-```{r fit-stan-glm-aa-pairs}
-pairs(glmfit)
-```
-
-## Prepare mutation data for analysis (by mutation type)
-
-```{r prep-mut-glm}
-mutation_counts <- mut_df %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample') %>%
-  dplyr::filter(!is.na(os_10y)) %>%
-  dplyr::mutate(gene_effect = stringr::str_c(gene, effect, sep=".")) %>%
-  dplyr::group_by(gene) %>%
-  dplyr::mutate(gene_count = n()) %>%
-  dplyr::group_by(gene_effect) %>%
-  dplyr::mutate(gene_effect_count = n()) %>%
-  dplyr::ungroup() 
-
-top_genes <- mutation_counts %>%
   dplyr::distinct(gene, .keep_all = TRUE) %>%
-  dplyr::top_n(gene_count, n = 100) %>%
+  dplyr::top_n(gene_count, n = 10) %>%
   dplyr::select(gene)
 
-mutation_matrix <- mutation_counts %>%
-  dplyr::semi_join(top_genes) %>%
-  dplyr::group_by(gene_effect, sample) %>%
-  dplyr::mutate(sum_vaf = sum(DNA_VAF),
-                mean_vaf = mean(DNA_VAF)) %>%
-  dplyr::ungroup() %>%
-  dplyr::distinct(sample, gene_effect, mean_vaf) %>%
-  tidyr::spread(key = gene_effect, mean_vaf, fill = 0)
-
-glm_df <- mutation_matrix %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample')
-```
-
-## Fit `stan-glm` model 
-
-```{r fit-stan-glm}
-# construct input formula
-gene_names <- names(mutation_matrix)[-1]
-my_formula <- as.formula(
-  stringr::str_c('os_10y',
-                 '~ `',
-                 stringr::str_c(gene_names,
-                                collapse = '` + `'),
-                 '`')
-  )
-
-
-# call to `stan_glm`
-glmfit <- rstanarm::stan_glm(
-  data = glm_df,
-  formula = my_formula,
-  sparse = TRUE,
-  family = binomial(),
-  chains = 4,
-  prior = rstanarm::hs_plus()
-)
+mut_df_topgenes <- mut_df %>%
+  dplyr::semi_join(top_genes)
 ```
 
 # GLM model to all genes
@@ -317,17 +157,27 @@ glmfit <- rstanarm::stan_glm(
 ### Prepare mutation data for analysis
 
 ```{r prep-mut-glm2}
-mutation_matrix2 <- mutation_counts %>%
-  dplyr::semi_join(top_genes) %>%
-  dplyr::group_by(gene_effect, sample) %>%
-  dplyr::mutate(sum_vaf = sum(DNA_VAF),
-                mean_vaf = mean(DNA_VAF)) %>%
-  dplyr::ungroup() %>%
-  dplyr::distinct(sample, gene_effect, mean_vaf) %>%
-  tidyr::spread(key = gene_effect, mean_vaf, fill = 0)
+clin_df2_nonmiss <- clin_df2 %>% 
+  dplyr::mutate(
+    revised_breslow_depth = ifelse(is.na(breslow_depth_value),
+                                   0, breslow_depth_value)) %>%
+  tidyr::drop_na(os_10y,
+                 age_at_initial_pathologic_diagnosis,
+                 initial_weight, 
+                 revised_breslow_depth,
+                 sample_type,
+                 diagnosis_year_group)
 
-glm_df2 <- mutation_matrix2 %>%
-  dplyr::left_join(clin_df2 %>% 
+mutation_matrix <- SuMu:::prep_biomarker_data(
+  biomarker_data = mut_df_topgenes,
+  data = clin_df2_nonmiss,
+  biomarker_formula = 1 ~ gene_effect,
+  .fun = sum,
+  id = 'sample'
+)
+
+glm_df2 <- mutation_matrix %>%
+  dplyr::left_join(clin_df2_nonmiss %>% 
                      dplyr::select(sample, os_10y),
                    by = 'sample')
 ```
@@ -336,15 +186,17 @@ glm_df2 <- mutation_matrix2 %>%
 
 ```{r fit-stan-glm2}
 # construct input formula
-gene_names2 <- names(mutation_matrix2)[-1]
-my_formula2 <- as.formula(
-  stringr::str_c('os_10y',
-                 '~ `',
+gene_names2 <- mutation_matrix %>% 
+  head(1) %>% 
+  dplyr::select(-sample) %>% 
+  names()
+
+gene_subformula <- stringr::str_c('`',
                  stringr::str_c(gene_names2,
                                 collapse = '` + `'),
                  '`')
-  )
 
+my_formula2 <- stringr::str_c('os_10y ~ ', gene_subformula)
 
 # call to `stan_glm`
 glmfit2 <- rstanarm::stan_glm(
@@ -357,7 +209,7 @@ glmfit2 <- rstanarm::stan_glm(
 )
 ```
 
-# GLM model including clinical data only
+# GLM(er) model including clinical data only
 
 ```{r glm-model-clin}
 rescale <- function(x) {
@@ -366,8 +218,10 @@ rescale <- function(x) {
 
 clin_df3 <- clin_df2 %>%
   dplyr::mutate(
-    rescale_age_at_initial_pathologic_diagnosis = rescale(age_at_initial_pathologic_diagnosis), 
-    rescale_initial_weight = rescale(initial_weight),
+    rescale_age_at_initial_pathologic_diagnosis =
+       rescale(age_at_initial_pathologic_diagnosis), 
+    rescale_initial_weight = 
+      rescale(initial_weight),
     rescale_breslow_depth_value = rescale(breslow_depth_value)
   ) 
 
@@ -396,10 +250,8 @@ print(glmfit_clin)
 # GLM(er) model with clinical + genetic data
 
 ```{r fit-stan-glm3}
-mutation_matrix3 <- SuMu::prep_biomarker_data()
-
 glm_df3 <- clin_df3 %>%
-  dplyr::inner_join(mutation_matrix2,
+  dplyr::inner_join(mutation_matrix,
                    by = 'sample')
 
 # construct input formula
@@ -417,11 +269,12 @@ clinical_formula <- os_10y ~
         `__BIOMARKERS__`
       | diagnosis_year_group
       )
-gene_names3 <- names(mutation_matrix2)[-1]
+
 gene_subformula <- stringr::str_c('`',
                  stringr::str_c(gene_names2,
                                 collapse = '` + `'),
                  '`')
+
 my_formula3 <- stringr::str_c(
   as.character(clinical_formula)[2],
   as.character(clinical_formula)[3],
@@ -449,6 +302,19 @@ glmfit_clingen <- rstanarm::stan_glmer(
 )
 ```
 
+
+Our function syntax will look like the following.
+
+```{r}
+
+fit <- fit_glm(
+  data = clin_df,
+  formula = os_10y ~ rescale_.. + `__BIO__`,
+  biomarker_data = mut_df,
+  biomarker_formula = 1 ~ gene_aa + (1|effect) + (1|gene),
+  id = 'sample'
+)
+```
 
 
 
