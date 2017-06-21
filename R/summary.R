@@ -106,17 +106,34 @@ data_summary = function(data,features)
 #'
 view_feature = function(data, feature)
 {
-
   #Plot observed data
   #Create survival table
-    #Pull feature column
-    #Pull survival column
-    fit <- survfit(Surv(times, vital.status) ~ feature.code,
-                 data = ...)
-    # Visualize with survminer
-    ggsurvplot(fit, data = ..., risk.table = TRUE)
+  survival_table_cols=c("sampleID","OS","OS_IND")
+  survival_table=clin_df2[survival_table_cols]
+
+    #Identify samples with feature of interest & annotate samples w/o sequencing data
+    mutated_samples=mutation_matrix$sample[mutation_matrix[feature]!=0]#sample names with feature
+    not_sequenced=clin_df$sampleID[match(clin_df$sampleID,mutation_matrix$sample,nomatch=0)==0]
+
+    for (i in 1:nrow(survival_table))
+    {
+      if(is.element(survival_table[i,1],mutated_samples))
+      {  survival_table[i,4]="Mutated"
+      } else if(is.element(survival_table[i,1],not_sequenced))
+      {    survival_table[i,4]="Not_sequenced"
+      } else
+      {    survival_table[i,4]="No_Mutation_Detected"}
+    }
+
+    colnames(survival_table)[4]="Status"
+
+  # Visualize with survival curve
+  fit <- survfit(Surv(OS, OS_IND) ~ Status,
+                 data = survival_table)
+  survminer::ggsurvplot(fit, legend = "right", title = feature)
 
   #Plot simulated data
+
   #Plot sorted correlations
 
 }
