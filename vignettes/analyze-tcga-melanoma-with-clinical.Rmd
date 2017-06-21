@@ -302,6 +302,33 @@ glmfit_clingen <- rstanarm::stan_glmer(
 )
 ```
 
+## summarize output
+
+### Visualize 
+
+```{r}
+summary_table=feature_table(glmfit_clingen)
+feature_graph(glmfit_clingen)
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[1]))
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[nrow(summary_table)]))
+```
+
+### AUC
+
+```{r}
+auc(clin_df, "os_10y", glmfit_clingen)
+```
+
+```{r}
+auc(clin_df, "os_10y", glmfit_clingen, h_gram = T)
+```
+
+```{r}
+auc(clin_df, "os_10y", glmfit_clingen, roc_plot = T)
+```
+
+
+## Future directions
 
 Our function syntax will look like the following.
 
