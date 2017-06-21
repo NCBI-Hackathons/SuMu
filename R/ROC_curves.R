@@ -8,7 +8,7 @@
 #' @param data_frame the dataframe containing clinical data
 #' @param response_name the column name of the data_frame that has the resonse variable
 #' @param fitted_model the stanreg fitted model
-#' @param historgam do you want a histogram of all the estimated posterior p-values? Possible values TRUE/FALSE, defaults to FALSE
+#' @param h_gram do you want a histogram of all the estimated posterior p-values? Possible values TRUE/FALSE, defaults to FALSE
 #'
 #' @return numeric AUC
 #' @import survminer
@@ -20,7 +20,7 @@
 #' @import rstanarm
 #' @import zoo
 #' @export
-auc <- function(data_frame, response_name, fitted_model, histogram=FALSE){
+auc <- function(data_frame, response_name, fitted_model, h_gram=FALSE){
   var = data_frame[response_name][,1]  #observed outcomes
   ind_vars = data_frame[ , ! colnames(data_frame) %in% c(response_name) ] #only independent variables
   p_data <- posterior_predict(fitted_model, newdata=data_frame)
