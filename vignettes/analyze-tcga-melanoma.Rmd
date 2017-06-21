@@ -257,3 +257,11 @@ glmfit <- rstanarm::stan_glm(
   prior = rstanarm::hs_plus()
 )
 ```
+
+## Visualize 
+```{}
+summary_table=feature_table(glmfit)
+feature_graph(glmfit)
+view_feature(mutation_matrix,clin_df2,rownames(summary_table)[1])
+view_feature(mutation_matrix,clin_df2,rownames(summary_table)[nrow(summary_table)])
+```
