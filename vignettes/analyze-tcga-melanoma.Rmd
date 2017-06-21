@@ -27,6 +27,8 @@ library(rstanarm)
 options(mc.cores = 4)
 ```
 
+# Data Exploration
+
 ## Clinical Data
 
 First, download the clinical data. Here we are using the TCGA skin cutaneous melanoma (SKCM) cohort.
@@ -178,6 +180,8 @@ diag(cor(cnv_mat, exp_mat)) %>% round(3) %>% as.data.frame
 
 There is some correlation between expression and copy number data as expected.
 
+# GLM model with sample of genetic data 
+
 ## Prepare mutation data for analysis
 
 ```{r prep-mut-glm}
@@ -213,7 +217,7 @@ glm_df <- mutation_matrix %>%
                    by = 'sample')
 ```
 
-## Fit `stan-glm` model to these genetic data, without clinical covariates
+## Fit `stan-glm` model 
 
 ```{r fit-stan-glm}
 # construct input formula
@@ -231,6 +235,90 @@ my_formula <- as.formula(
 glmfit <- rstanarm::stan_glm(
   data = glm_df,
   formula = my_formula,
+  sparse = TRUE,
+  family = binomial(),
+  chains = 4,
+  prior = rstanarm::hs_plus()
+)
+```
+
+# GLM model to all genes
+
+### Prepare mutation data for analysis
+
+```{r prep-mut-glm2}
+mutation_matrix2 <- mutation_counts %>%
+  dplyr::semi_join(top_genes) %>%
+  dplyr::group_by(gene_effect, sample) %>%
+  dplyr::mutate(sum_vaf = sum(DNA_VAF),
+                mean_vaf = mean(DNA_VAF)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(sample, gene_effect, mean_vaf) %>%
+  tidyr::spread(key = gene_effect, mean_vaf, fill = 0)
+
+glm_df2 <- mutation_matrix2 %>%
+  dplyr::left_join(clin_df2 %>% 
+                     dplyr::select(sample, os_10y),
+                   by = 'sample')
+```
+
+## Fit `stan-glm` model to these genetic data
+
+```{r fit-stan-glm2}
+# construct input formula
+gene_names2 <- names(mutation_matrix2)[-1]
+my_formula2 <- as.formula(
+  stringr::str_c('os_10y',
+                 '~ `',
+                 stringr::str_c(gene_names2,
+                                collapse = '` + `'),
+                 '`')
+  )
+
+
+# call to `stan_glm`
+glmfit2 <- rstanarm::stan_glm(
+  data = glm_df2,
+  formula = my_formula2,
+  sparse = TRUE,
+  family = binomial(),
+  chains = 4,
+  prior = rstanarm::hs_plus()
+)
+```
+
+# GLM model including clinical data only
+
+```{r glm-model-clin}
+glmfit_clin <- rstanarm::stan_glmer(
+  os_10y ~
+    age_at_initial_pathologic_diagnosis + 
+    sample_type +
+    breslow_depth_value + initial_weight + 
+    (age_at_initial_pathologic_diagnosis + 
+       sample_type +
+       breslow_depth_value + 
+       initial_weight 
+     | year_of_initial_pathologic_diagnosis),
+               data = clin_df2)
+print(fit)
+```
+```{r fit-stan-glm3}
+# construct input formula
+gene_names2 <- names(mutation_matrix2)[-1]
+my_formula2 <- as.formula(
+  stringr::str_c('os_10y',
+                 '~ `',
+                 stringr::str_c(gene_names2,
+                                collapse = '` + `'),
+                 '`')
+  )
+
+
+# call to `stan_glm`
+glmfit2 <- rstanarm::stan_glm(
+  data = glm_df2,
+  formula = my_formula2,
   sparse = TRUE,
   family = binomial(),
   chains = 4,
