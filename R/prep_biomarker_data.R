@@ -37,43 +37,60 @@ prep_biomarker_data <- function(data,
   if (!is.null(biomarker_data) && is.null(biomarker_formula))
     stop('biomarker_formula is required with biomarker_data - should be in the form of `biomarker_value ~ biomarker_name`.')
 
-  ## populate biomarker_data from biomarker_matrix
+  ## populate fake id-colname if one doesn't exist already
+  if (is.null(id)) {
+    id_colname <- '_id'
+    data[[id_colname]] <- rownames(data)
+    if (!is.null(biomarker_matrix))
+      biomarker_matrix[[id_colname]] <- rownames(biomarker_matrix)
+  } else {
+    id_colname <- id
+    assertthat::assert_that(id_colname %in% names(data))
+    if (!is.null(biomarker_matrix))
+      assertthat::assert_that(id_colname %in% names(biomarker_matrix))
+    if (!is.null(biomarker_data))
+      assertthat::assert_that(id_colname %in% names(biomarker_data))
+  }
+
+  ## filter biomarker data to non-missing records in clinical data
+  ids_in_clinical <- data %>%
+    dplyr::distinct_(id_colname) %>%
+    dplyr::select_(id_colname)
+
+  ## filter biomarker_data &/or biomarker_matrix
+  if (!is.null(biomarker_data))
+    biomarker_data_filtered <- biomarker_data %>%
+      dplyr::semi_join(ids_in_clinical)
+  if (!is.null(biomarker_matrix))
+    biomarker_matrix_filtered <- biomarker_matrix %>%
+      dplyr::semi_join(ids_in_clinical)
+
+  ## among non-missing observations, populate biomarker_data from biomarker_matrix
   if (!is.null(biomarker_matrix)) {
-    biomarker_data <- convert_biom_matrix_to_data(biomarker_matrix, id = id)
-    id_colname <- attr(biomarker_data, 'id_colname')
-    ## check if ID in clinical data
-    if (!id_colname %in% names(data)) {
-      ## assume rownames / data sort order of biomarker & clinical data match
-      data[id_colname] <- rownames(data)
-    }
+    biomarker_data_filtered <- convert_biom_matrix_to_data(biomarker_matrix_filtered, id = id, id_colname = id_colname)
     biomarker_formula <- attr(biomarker_data, 'biomarker_formula')
   }
   if (!is.null(biomarker_data)) {
+<<<<<<< HEAD
     biomarker_matrix <- convert_biom_data_to_matrix(biomarker_data,
                                                     id = id,
                                                     biomarker_formula = biomarker_formula,
                                                     .fun = .fun)
     id_colname <- attr(biomarker_matrix, 'id_colname')
+=======
+    biomarker_matrix_filtered <- convert_biom_data_to_matrix(biomarker_data_filtered,
+                                                             biomarker_formula = biomarker_formula,
+                                                             id = id, .fun = .fun)
+>>>>>>> master
     ## biomarker_formula already given for biomarker_data
   }
 
-  ## filter to non-missing records in clinical data
-  ids_in_biomarker_data <- biomarker_data %>%
+  ## filter clinical to non-missing records in biomarker data
+  ids_in_biomarker <- biomarker_data_filtered %>%
     dplyr::distinct_(id_colname) %>%
     dplyr::select_(id_colname)
-  ids_in_clinical_data <- data %>%
-    dplyr::distinct_(id_colname) %>%
-    dplyr::select_(id_colname)
-  ids_in_both <- ids_in_biomarker_data %>%
-    dplyr::semi_join(ids_in_clinical_data, by = id_colname)
-
-  ## filter biomarker_data & biomarker_matrix
-  biomarker_data_filtered <- biomarker_data %>%
-    dplyr::semi_join(ids_in_both)
-  biomarker_matrix_filtered <- biomarker_matrix %>%
-    dplyr::semi_join(ids_in_both)
   data_filtered <- data %>%
-    dplyr::semi_join(ids_in_both)
+    dplyr::semi_join(ids_in_biomarker)
 
   ## return biomarker_matrix
   structure(biomarker_matrix_filtered, clinical_data = data_filtered)
@@ -88,17 +105,21 @@ prep_biomarker_data <- function(data,
 #'          If provided, both the clinical & biomarker data/matrix should contain this column.
 #'          If not, it is assumed that biomarker data/matrix has rownames, or is sorted in matched order
 #'          as the clinical data.
+<<<<<<< HEAD
 #'
+=======
+#' @param id_colname (optional) name to use when creating the id, if not provided.
+>>>>>>> master
 #' @import assertthat tidyr
 #'
 #' @return long-format data.frame with attributes id_colname & biomarker_formula
-convert_biom_matrix_to_data <- function(biomarker_matrix, id) {
+convert_biom_matrix_to_data <- function(biomarker_matrix, id, id_colname = id) {
   ## populate temporary id column if one not given
   if (is.null(id)) {
-    id_colname <- '_id' # name that is unlikely to conflict with existing names
-    if (id_colname %in% names(biomarker_matrix))
-      id_colname <- '_temp_id'
-    biomarker_matrix[id_colname] <- rownames(biomarker_matrix)
+    if (is.null(id_colname))
+      id_colname <- '_id'
+    if (!id_colname %in% names(biomarker_matrix))
+      biomarker_matrix[id_colname] <- rownames(biomarker_matrix)
   } else {
     id_colname <- id
     assertthat::has_name(biomarker_matrix, id_colname)
