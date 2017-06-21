@@ -33,7 +33,7 @@ prep_biomarker_data <- function(data,
     stop('Cannot supply both biomarker_data & biomarker_matrix. Please pick one.')
   if (!is.null(biomarker_data) && is.null(id))
     stop('id cannot be NULL if biomarker_data provided.')
-  if (!is.null(biomarker_data && (is.null(biomarker_formula))
+  if (!is.null(biomarker_data) && is.null(biomarker_formula))
     stop('biomarker_formula is required with biomarker_data - should be in the form of `biomarker_value ~ biomarker_name`.')
 
   ## populate biomarker_data from biomarker_matrix
