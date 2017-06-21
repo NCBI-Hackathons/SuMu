@@ -1,7 +1,3 @@
-#' Function for evaluation of model
-#' @param data stanreg object with fit data
-#' comparison of modeled vs observed data
-
 #' Function for textual summary of data
 #'
 #' @param data stanreg object with fit data
@@ -135,7 +131,10 @@ view_feature = function(mutations, clinical, feature)
   survminer::ggsurvplot(fit, legend = "right", title = feature)
 
   #Plot simulated data
-#  predicted_survival=posterior_survfit(survfit,)
+#   #Generate table with only mutated samples
+#   mut_samples=filter(survival_table,Status="Mutated")
+#   nomut_samples=filter(survival_table,Status="No_Mutation_Detected")
+#   predicted_survival_mut=posterior_survfit(survfit,)
 
 #  ggplot(.,
 #         aes(x = obstime, y = survpred, group = Status, colour = Status)) +
