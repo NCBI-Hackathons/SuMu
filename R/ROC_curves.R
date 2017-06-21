@@ -1,8 +1,8 @@
 ROC_ <- function(data_frame, response_name, fitted_model){
   
-  '''This function takes as inputs the dataframe with the raw data, 
-  the column name of the response variable, and the fitted model (trained on a different),
-  calculates AUC for the model and spits out some pretty plots too (no plots yet)'''
+ # '''This function takes as inputs the dataframe with the raw data, 
+ # the column name of the response variable, and the fitted model (trained on a different),
+ # calculates AUC for the model and spits out some pretty plots too (no plots yet)'''
   
   var = data_frame[response_name][,1]  #observed outcomes
   ind_vars = data_frame[ , ! colnames(data_frame) %in% c(response_name) ] #only independent variables
