@@ -182,7 +182,77 @@ There is some correlation between expression and copy number data as expected.
 
 # GLM model with sample of genetic data 
 
-## Prepare mutation data for analysis
+## Prepare mutation data for analysis (by specific mutation)
+
+Quick example using just the top 5 most common mutations.
+
+```{r prep-mut-glm-aa}
+mutation_counts <- mut_df %>%
+  dplyr::filter(effect == "Missense_Mutation") %>%
+  dplyr::left_join(clin_df2 %>% 
+                     dplyr::select(sample, os_10y),
+                   by = 'sample') %>%
+  dplyr::filter(!is.na(os_10y)) %>%
+  dplyr::mutate(gene_aa = stringr::str_c(gene, Amino_Acid_Change, sep=":")) %>%
+  dplyr::group_by(gene) %>%
+  dplyr::mutate(gene_count = n()) %>%
+  dplyr::group_by(gene_aa) %>%
+  dplyr::mutate(gene_aa_count = n()) %>%
+  dplyr::ungroup()
+
+top_aa <- mutation_counts %>%
+  dplyr::distinct(gene_aa, .keep_all = TRUE) %>%
+  dplyr::top_n(gene_aa_count, n = 5) %>%
+  dplyr::select(gene_aa)
+
+mutation_matrix <- mutation_counts %>%
+  dplyr::semi_join(top_aa) %>%
+  dplyr::group_by(gene_aa, sample) %>%
+  dplyr::mutate(sum_vaf = sum(DNA_VAF),
+                mean_vaf = mean(DNA_VAF)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(sample, gene_aa, mean_vaf) %>%
+  tidyr::spread(key = gene_aa, mean_vaf, fill = 0)
+
+glm_df <- mutation_matrix %>%
+  dplyr::left_join(clin_df2 %>% 
+                     dplyr::select(sample, os_10y),
+                   by = 'sample')
+```
+
+```{r fit-stan-glm-aa}
+# construct input formula
+gene_names <- names(mutation_matrix)[-1]
+my_formula <- as.formula(
+  stringr::str_c('os_10y',
+                 '~ `',
+                 stringr::str_c(gene_names,
+                                collapse = '` + `'),
+                 '`')
+  )
+my_formula
+
+# call to `stan_glm`
+glmfit <- rstanarm::stan_glm(
+  data = glm_df,
+  formula = my_formula,
+  sparse = TRUE,
+  family = binomial(),
+  chains = 4,
+  prior = rstanarm::hs_plus(),
+  adapt_delta = 0.999
+)
+```
+
+We get an error: "Markov chains did not converge! Do not analyze results!"
+
+We can diagnose sampling problems using the pairs plot.
+
+```{r fit-stan-glm-aa-pairs}
+pairs(glmfit)
+```
+
+## Prepare mutation data for analysis (by mutation type)
 
 ```{r prep-mut-glm}
 mutation_counts <- mut_df %>%
@@ -368,3 +438,9 @@ glmfit_clingen <- rstanarm::stan_glmer(
   prior = rstanarm::hs_plus()
 )
 ```
+
+
+
+
+
+
