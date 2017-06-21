@@ -10,7 +10,7 @@ library(rstanarm)
 data(wells)
 wells$dist100 <- wells$dist / 100
 bfit <- stan_glm(
-  switch ~ dist100 + arsenic, 
+  switch ~ dist100 + arsenic,
   data = wells,
   family = binomial(link = "logit"),
   prior_intercept = normal(0, 10),
@@ -20,7 +20,7 @@ bfit <- stan_glm(
 )
 print(bfit)
 
-#non-dependent variables only. 
+#non-dependent variables only.
 wells_n = wells[,-1]
 var = wells[,1] #this is the observed outcome
 
@@ -38,15 +38,15 @@ FPR <- c()
 for (i in br){
   tDF1 <- filter(tDF, p_est<=i)
   tDF0 <- filter(tDF, p_est>i)
-  
+
   size1 <- dim(tDF1)[1]
   size0 <- dim(tDF0)[1]
-    
+
   true_pos =  sum(tDF1$var)
   false_pos = size1 - true_pos
   true_neg = size0 - sum(tDF0$var)
   false_neg = sum(tDF0$var)
-  
+
   TPR <- c(TPR, true_pos/(true_pos+false_neg))
   FPR <- c(FPR, 1-(true_neg/(true_neg+false_pos)))
 
