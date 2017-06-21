@@ -217,20 +217,50 @@ glm_df <- mutation_matrix %>%
 Using functions within package
 
 ```{r}
-## testing sub-function called by prep_biomarker_data
-mutation_matrix <- SuMu:::convert_biom_data_to_matrix(
-  biomarker_data = mut_df,
-  id = 'sample',
-  biomarker_formula = '1 ~ gene_effect'
-  )
 
-## testing prep_biomarker_data as a whole
-glm_df <- SuMu::prep_biomarker_data(
-  data = clin_df2,
-  biomarker_data = mut_df,
+devtools::load_all('.')
+
+# ## testing prep_biomarker_data as a whole
+# glm_df <- SuMu::prep_biomarker_data(
+#   data = clin_df2,
+#   biomarker_data = mut_df,
+#   biomarker_formula = 1 ~ gene_effect,
+#   id = 'sample'
+# )
+
+
+top_genes <- mut_df %>%
+  dplyr::filter(effect == "Missense_Mutation") %>%
+  dplyr::select(gene) %>%
+  dplyr::group_by(gene) %>%
+  dplyr::mutate(gene_count = n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(gene, .keep_all = TRUE) %>%
+  dplyr::arrange(-gene_count) %>%
+  head(10) %>%
+  .$gene
+
+# subset mutations to just chr7 (BRAF) to keep it small for testing
+mut_df_subset = mut_df %>% dplyr::filter(gene %in% top_genes)
+
+# create formula
+f <- stringr::str_c('os_10y ~ `',
+stringr::str_c(unique(mut_df_subset$gene_effect),
+collapse = '` + `'),
+'`')
+my_formula <- as.formula(f)
+
+clin_df3 <- clin_df2 %>% dplyr::select(sample, os_10y)
+
+# new
+g <- fit_glm(
+  data = clin_df3,
+  formula = my_formula,
+  biomarker_data = mut_df_subset,
   biomarker_formula = 1 ~ gene_effect,
-  id = 'sample'
-)
+  id = 'sample',
+  stanfit_func = NULL)
+
 ```
 
 ## Fit `stan-glm` model to these genetic data, without clinical covariates

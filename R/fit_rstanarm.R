@@ -28,8 +28,8 @@
 #' @return stanreg object
 #' @import rstanarm
 fit_rstanarm <- function(
-  formula,
   data,
+  formula,
   biomarker_data = NULL,
   biomarker_matrix = NULL,
   biomarker_formula = NULL,
@@ -49,6 +49,8 @@ fit_rstanarm <- function(
                                  id = id)
 
   ## join with clinical data for input to rstanarm
+  glm_df <- biodata %>%
+    dplyr::left_join(data)
 
   ## prepare priors to input to rstanarm
 
@@ -57,8 +59,18 @@ fit_rstanarm <- function(
   ## prepare call to rstanarm
 
   ## execute call
+  glmfit <- rstanarm::stan_glm(
+    data = glm_df,
+    formula = formula,
+    sparse = TRUE,
+    family = binomial(),
+    chains = 4,
+    prior = rstanarm::hs_plus()
+  )
 
   ## format resulting object
+
+  return(glmfit)
 }
 
 #' Function to fit an rstanarm::stan_glm model containing genetic features & clinical data
@@ -68,6 +80,7 @@ fit_rstanarm <- function(
 #' @param biomarker_data the dataframe or matrix containing genetic
 #'                    features / potential biomarkers. Should have an ID column
 #'                    or have rownames set to ID values.
+#' @param biomarker_formula
 #' @param id (optional) name of id column. Should be common/shared between data & biomarker data
 #' @param prior prior on clinical covariates
 #' @param biomarker_prior prior on
@@ -90,9 +103,10 @@ fit_rstanarm <- function(
 #'
 #' @export
 fit_glm <- function(
-  formula,
   data,
+  formula,
   biomarker_data,
+  biomarker_formula,
   id = NULL,
   prior = NULL,
   biomarker_prior = NULL,
@@ -102,6 +116,16 @@ fit_glm <- function(
   ## prepare function inputs to pass to fit_rstanarm()
 
   ## call fit_rstanarm
+  f <- fit_rstanarm(
+    formula = formula,
+    data = data,
+    biomarker_data = biomarker_data,
+    biomarker_formula = biomarker_formula,
+    id = id,
+    stanfit_func = NULL)
+
+  return(f)
+
 }
 
 
