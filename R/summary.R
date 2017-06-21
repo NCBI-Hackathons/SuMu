@@ -97,6 +97,7 @@ data_summary = function(data,features)
 #'
 #' @param mutations matrix with samples as rows, mutations as columns
 #' @param clinical matrix of TCGA clinical data
+#' @param survfit dataframe of predicted survival model
 #' @param feature genetic variant (or clinical characteristic?) of interest
 #'
 #' @import survminer
@@ -105,7 +106,7 @@ data_summary = function(data,features)
 #' Plot survival of population vs survival of subjects w/ genetic variant overlay w/ acutal data
 #' Plot bar graph of covariance w/ genetic variant of clinical data
 #'
-view_feature = function(mutations, clinical, feature)
+view_feature = function(mutations, clinical, survfit, feature)
 {
   #Plot observed data
   #Create survival table
@@ -134,7 +135,16 @@ view_feature = function(mutations, clinical, feature)
   survminer::ggsurvplot(fit, legend = "right", title = feature)
 
   #Plot simulated data
+  predicted_survival=posterior_survfit(survfit,)
 
+  ggplot(.,
+         aes(x = obstime, y = survpred, group = Status, colour = Status)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = ci_lb, ymax = ci_ub, colour = NULL, fill = drug), alpha = 0.2) +
+    facet_wrap(~prevOI) +
+    theme_minimal() +
+    scale_y_continuous('Posterior-predicted survival', labels = percent) +
+    scale_x_continuous('Months')
 
   #Plot sorted correlations
 
