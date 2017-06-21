@@ -21,6 +21,8 @@ fit <- fit_glm(
 )
 ```
 
+Please check the vignettes for more info and examples.
+
 ## Description
 
 This package aims to make it easier to fit [Stan](https://mc-stan.org) models in R to estimate the association of genetic variants with survival (time from diagnosis/treatment to clinical event) or benefit from therapy, in the context of clinical data.
