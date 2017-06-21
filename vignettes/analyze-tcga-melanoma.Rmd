@@ -12,7 +12,6 @@ vignette: >
 Here we are demonstrating the feasibility of analyzing genomic data using Stan. The first use case is to analyze somatic mutations for association with survival, after adjusting for key clinical variables with known prognostic status.
 
 ```{r setup, include = F, warnings = F, echo = F}
-
 knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
                       echo=TRUE, warning=FALSE, message=FALSE)
 
