@@ -11,8 +11,8 @@ vignette: >
 
 There are two ways to fit a GLM model using [Stan](https://mc-stan.org).
 
-1. Use rstanarm::stan_glm
-2. Write the stan code for the model & fit using `rstan::fit`
+1. Use rstanarm::stan_glm, which uses a precompiled stan model to fit your data (under the hood, using `rstan::stan`).
+2. Write the stan code for the model & fit using `rstan::stan`.
 
 We will work through both examples here.
 
