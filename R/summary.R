@@ -132,10 +132,11 @@ view_feature = function(mutations, clinical, feature)
 
   #Plot simulated data
 #   #Generate table with only mutated samples
-#   mut_samples=filter(survival_table,Status="Mutated")
-#   nomut_samples=filter(survival_table,Status="No_Mutation_Detected")
+#
+#   mut_samples=filter(clin_mut_data,Status="Mutated")
+#   nomut_samples=filter(clin_mut_data,Status="No_Mutation_Detected")
 #   predicted_survival_mut=posterior_survfit(survfit,)
-
+#   preducted_survival_nomut=
 #  ggplot(.,
 #         aes(x = obstime, y = survpred, group = Status, colour = Status)) +
 #    geom_line() +
