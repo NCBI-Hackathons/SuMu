@@ -132,15 +132,26 @@ view_feature = function(mutations, clinical, feature)
 
   #Plot simulated data
 #   #Generate table with only mutated samples
-#
+#   n=ncols(clin_mut_data) # detect size of data input into model (needs to be added to parameters of this function)
+#   clin_mut_data=cbind(clin_mut_data,survival_table[4]
+#  
 #   mut_samples=filter(clin_mut_data,Status="Mutated")
 #   nomut_samples=filter(clin_mut_data,Status="No_Mutation_Detected")
-#   predicted_survival_mut=posterior_survfit(survfit,)
-#   preducted_survival_nomut=
-#  ggplot(.,
+#
+#   predicted_survival_mut=posterior_survfit(survfit,newdata = mut_samples,standardise = TRUE, times = 0, extrapolate = TRUE, control = list(condition = FALSE))
+#   predicted_survival_nomut=posterior_survfit(survfit,newdata = nomut_samples,standardise = TRUE, times = 0, extrapolate = TRUE, control = list(condition = FALSE))
+#  ggplot(predicted_survival_mut,
 #         aes(x = obstime, y = survpred, group = Status, colour = Status)) +
 #    geom_line() +
-#    geom_ribbon(aes(ymin = ci_lb, ymax = ci_ub, colour = NULL, fill = drug), alpha = 0.2) +
+#    geom_ribbon(aes(ymin = ci_lb, ymax = ci_ub, colour = NULL, fill = Status), alpha = 0.2) +
+#    facet_wrap(~prevOI) +
+#    theme_minimal() +
+#    scale_y_continuous('Posterior-predicted survival', labels = percent) +
+#    scale_x_continuous('Months')
+#  ggplot(predicted_survival_nomut,
+#         aes(x = obstime, y = survpred, group = Status, colour = Status)) +
+#    geom_line() +
+#    geom_ribbon(aes(ymin = ci_lb, ymax = ci_ub, colour = NULL, fill = Status), alpha = 0.2) +
 #    facet_wrap(~prevOI) +
 #    theme_minimal() +
 #    scale_y_continuous('Posterior-predicted survival', labels = percent) +
