@@ -126,7 +126,7 @@ view_feature = function(mutations, clinical, feature)
     colnames(survival_table)[4]="Status"
 
   # Visualize with survival curve
-  fit <- survfit(Surv(OS, OS_IND) ~ Status,
+  fit <- survival::survfit(Surv(OS, OS_IND) ~ Status,
                  data = survival_table)
   survminer::ggsurvplot(fit, legend = "right", title = feature)
 
