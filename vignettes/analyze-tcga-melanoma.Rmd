@@ -242,5 +242,6 @@ glmfit <- rstanarm::stan_glm(
 ```{}
 summary_table=feature_table(glmfit)
 feature_graph(glmfit)
-view_feature(mutation_matrix,clin_df2,summary_table[1,1])
+view_feature(mutation_matrix,clin_df2,rownames(summary_table)[1])
+view_feature(mutation_matrix,clin_df2,rownames(summary_table)[nrow(summary_table)])
 ```
