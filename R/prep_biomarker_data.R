@@ -71,17 +71,9 @@ prep_biomarker_data <- function(data,
     biomarker_formula <- attr(biomarker_data, 'biomarker_formula')
   }
   if (!is.null(biomarker_data)) {
-<<<<<<< HEAD
-    biomarker_matrix <- convert_biom_data_to_matrix(biomarker_data,
-                                                    id = id,
-                                                    biomarker_formula = biomarker_formula,
-                                                    .fun = .fun)
-    id_colname <- attr(biomarker_matrix, 'id_colname')
-=======
     biomarker_matrix_filtered <- convert_biom_data_to_matrix(biomarker_data_filtered,
                                                              biomarker_formula = biomarker_formula,
                                                              id = id, .fun = .fun)
->>>>>>> master
     ## biomarker_formula already given for biomarker_data
   }
 
@@ -105,11 +97,7 @@ prep_biomarker_data <- function(data,
 #'          If provided, both the clinical & biomarker data/matrix should contain this column.
 #'          If not, it is assumed that biomarker data/matrix has rownames, or is sorted in matched order
 #'          as the clinical data.
-<<<<<<< HEAD
-#'
-=======
 #' @param id_colname (optional) name to use when creating the id, if not provided.
->>>>>>> master
 #' @import assertthat tidyr
 #'
 #' @return long-format data.frame with attributes id_colname & biomarker_formula
