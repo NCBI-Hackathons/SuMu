@@ -25,7 +25,7 @@ auc <- function(data_frame, response_name, fitted_model, h_gram=FALSE){
   ind_vars = data_frame[ , ! colnames(data_frame) %in% c(response_name) ] #only independent variables
   p_data <- posterior_predict(fitted_model, newdata=data_frame)
   p_est <- round(apply(p_data, 2, sum)/dim(p_data)[1], 3) #calculate p-values
-  if (histogram==TRUE) {hist(p_est, xlab= "Estimated posterior p-values")}
+  if (h_gram==TRUE) {hist(p_est, xlab= "Estimated posterior p-values")}
 
   tDF <- tbl_df(data.frame(var=var, p_est=p_est))
   br <- seq(from=min(p_est), to=max(p_est), length.out=1000)
@@ -39,6 +39,7 @@ auc <- function(data_frame, response_name, fitted_model, h_gram=FALSE){
     size1 <- dim(tDF1)[1]
     size0 <- dim(tDF0)[1]
 
+    if (size1==0 | size0==0){next}
     true_pos =  sum(tDF1$var)
     false_pos = size1 - true_pos
     true_neg = size0 - sum(tDF0$var)
@@ -47,7 +48,7 @@ auc <- function(data_frame, response_name, fitted_model, h_gram=FALSE){
     TPR <- c(TPR, true_pos/(true_pos+false_neg))
     FPR <- c(FPR, 1-(true_neg/(true_neg+false_pos)))
   }
-
+  id <- order(TPR)
   AUC <- sum(diff(TPR[id])*rollmean(FPR[id],2))
   return(AUC)
 }
