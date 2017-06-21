@@ -12,8 +12,8 @@
 #'           Should have dimensions NxG where N: number of subjects and G: number features
 #'           Can have an ID column (if `id` param provided) or have rownames set to ID values.
 #' @param biomarker_formula (optional) formula describing hierarchical structure of association
-#'           for biomarker features. Only possible if data are provided in 'long' format.
-#'           NOT YET IMPLEMENTED.
+#'           for biomarker features. Required if data are provided in 'long' format.
+#'           COMPLEX FORMULAS NOT YET IMPLEMENTED.
 #' @param id (optional) name of id column.
 #'          If provided, both the clinical & biomarker data/matrix should contain this column.
 #'          If not, it is assumed that biomarker data/matrix has rownames, or is sorted in matched order
@@ -21,6 +21,8 @@
 #' @param prior prior on clinical covariates
 #' @param biomarker_prior prior on biomarker features
 #' @param stanfit_func name of rstanarm::stan_xx function
+#' @param .fun (optional) function to use when summarizing values, if more than one exists per ID.
+#'         defaults to NULL (do not summarize).
 #' @param ... additional parameters passed to rstanarm fit object (iter, chains, etc)
 #'
 #' @return stanreg object
@@ -36,6 +38,7 @@ fit_rstanarm <- function(
   prior = NULL,
   biomarker_prior = NULL,
   family = NULL,
+  .fun = NULL,
   ...
 ) {
   ## prepare genetic data matrix

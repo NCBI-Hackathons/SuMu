@@ -16,12 +16,15 @@
 #'          If provided, both the clinical & biomarker data/matrix should contain this column.
 #'          If not, it is assumed that biomarker data/matrix has rownames, or is sorted in matched order
 #'          as the clinical data.
+#' @param .fun (optional) function to use when summarizing values, if more than one exists per ID.
+#'         defaults to NULL (do not summarize).
 #' @return model.matrix with attributes
 prep_biomarker_data <- function(data,
                                 biomarker_data = NULL,
                                 biomarker_matrix = NULL,
                                 biomarker_formula = NULL,
-                                id = NULL
+                                id = NULL,
+                                .fun = NULL
 ) {
   ## check for valid inputs
   if (is.null(biomarker_data) && is.null(biomarker_matrix))
@@ -30,8 +33,8 @@ prep_biomarker_data <- function(data,
     stop('Cannot supply both biomarker_data & biomarker_matrix. Please pick one.')
   if (!is.null(biomarker_data) && is.null(id))
     stop('id cannot be NULL if biomarker_data provided.')
-  if (!is.null(biomarker_formula))
-    stop('biomarker_formula option not yet implemented.')
+  if (!is.null(biomarker_data && (is.null(biomarker_formula))
+    stop('biomarker_formula is required with biomarker_data - should be in the form of `biomarker_value ~ biomarker_name`.')
 
   ## populate biomarker_data from biomarker_matrix
   if (!is.null(biomarker_matrix)) {
@@ -45,7 +48,7 @@ prep_biomarker_data <- function(data,
     biomarker_formula <- attr(biomarker_data, 'biomarker_formula')
   }
   if (!is.null(biomarker_data)) {
-    biomarker_matrix <- convert_biom_data_to_matrix(biomarker_data, id = id)
+    biomarker_matrix <- convert_biom_data_to_matrix(biomarker_data, id = id, .fun = .fun)
     id_colname <- attr(biomarker_matrix, 'id_colname')
     ## biomarker_formula already given for biomarker_data
   }
@@ -69,7 +72,7 @@ prep_biomarker_data <- function(data,
     dplyr::semi_join(ids_in_both)
 
   ## return biomarker_matrix
-  structure(biomarker_matrix)
+  structure(biomarker_matrix_filtered, clinical_data = data_filtered)
 }
 
 #' Helper function to convert biomarker_matrix (wide-format) to data (long-format)
@@ -108,33 +111,60 @@ convert_biom_matrix_to_data <- function(biomarker_matrix, id) {
 #' @param biomarker_formula (required) formula describing hierarchical structure of association
 #'           for biomarker features.
 #'           COMPLEX FORMULAS NOT YET IMPLEMENTED.
-#' @param id (required) name of id column.
+#' @param id (required) name of id column
+#' @param .fun (optional) function to use when summarizing values, if more than one exists per ID.
+#'         defaults to NULL (do not summarize).
 #' @import assertthat tidyr dplyr
 #' @return wide-format data.frame with attributes
 convert_biom_data_to_matrix <- function(biomarker_data,
                                         id,
-                                        biomarker_formula
+                                        biomarker_formula,
+                                        .fun = NULL
 ) {
   ## confirm id input
   assertthat::is.string(id)
   id_colname <- id
   assertthat::has_name(biomarker_data, id_colname)
   ## confirm biomarker_formula
+  if (inherits(biomarker_formula, 'character'))
+    biomarker_formula <- as.formula(biomarker_formula)
   if (!inherits(biomarker_formula, 'formula'))
     stop('biomarker_formula must be of type `formula`')
   if (!inherits(biomarker_data, 'data.frame'))
     stop('biomarker_data must be of type `data.frame`')
 
   ## extract value (LHS) & description (RHS) from biomarker_formula
-  terms <- terms(biomarker_formula)
-  assertthat::assert_that(length(terms) == 3)
-  assertthat::assert_that(terms[[1]] == '~')
-  value_colname <- terms[[2]]
-  biomarker_colname <- terms[[3]]
+  ## for now, use a simple formula of `value ~ name`
+  biomarker_terms <- terms(biomarker_formula)
+  assertthat::assert_that(length(biomarker_terms) == 3)
+  assertthat::assert_that(biomarker_terms[[1]] == '~')
+  value_colname <- as.character(biomarker_terms[[2]])
+  if (value_colname == '1') {
+    biomarker_data[[value_colname]] <- 1
+  }
+  biomarker_colname <- as.character(biomarker_terms[[3]])
+
+  ## apply .fun to biomarker_data
+  if (!is.null(.fun)) {
+    biomarker_data <- biomarker_data %>%
+      dplyr::group_by_(id_colname, biomarker_colname) %>%
+      dplyr::summarise_each(funs = funs(.fun), value_colname) %>%
+      dplyr::ungroup()
+  }
+
+  ## confirm no duplicates per ID
+  biomarker_data_deduped <- biomarker_data %>%
+    dplyr::select(matches(value_colname), matches(id_colname), matches(biomarker_colname)) %>%
+    dplyr::distinct_(value_colname, id_colname, biomarker_colname)
+  if (nrow(biomarker_data_deduped) !=
+      nrow(distinct_(biomarker_data_deduped, id_colname, biomarker_colname))
+      )
+    stop(paste0('Error: duplicate entries by id (', id_colname ,') and biomarker (', biomarker_colname, ')'))
 
   ## construct matrix
   biomarker_matrix <- biomarker_data %>%
-    dplyr::distinct(one_of(value_colname, id_colname, biomarker_colname)) %>%
+    dplyr::select(matches(value_colname), matches(id_colname), matches(biomarker_colname)) %>%
+    dplyr::distinct_(value_colname, id_colname, biomarker_colname) %>%
     tidyr::spread_(key = biomarker_colname, value = value_colname, fill = 0)
 
   structure(biomarker_matrix, id_colname = id_colname)

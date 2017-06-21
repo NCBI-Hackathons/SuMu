@@ -122,7 +122,10 @@ print(fit)
 We can download the somatic mutations to supplement the phenotypes.
 
 ```{r load-mut}
-mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM")
+mut_df <- SuMu::get_tcga_somatic_mutations(cohort = "SKCM") %>%
+  dplyr::mutate(gene_aa = paste0(gene, ":",Amino_Acid_Change),
+                gene_effect = paste0(gene, ":",effect)
+                )
 ```
 
 Check the most frequent mutations.
@@ -138,7 +141,7 @@ mut_df_missense %>% select(gene_aa) %>% table %>% sort %>% rev %>% as.data.frame
 We can also download gene expression and gene-level copy number data.
 
 ```{r load-exp-cnv}
-exp = get_tcga_gene_expression(cohort = "SKCM")
+exp_data = get_tcga_gene_expression(cohort = "SKCM")
 cnv_gene = get_tcga_copy_number_gene(cohort = "SKCM")
 ```
 
@@ -181,7 +184,10 @@ There is some correlation between expression and copy number data as expected.
 
 ## Prepare mutation data for analysis
 
+Manual data preparation
+
 ```{r prep-mut-glm}
+
 mutation_counts <- mut_df %>%
   dplyr::left_join(clin_df2 %>% 
                      dplyr::select(sample, os_10y),
@@ -206,6 +212,25 @@ glm_df <- mutation_matrix %>%
   dplyr::left_join(clin_df2 %>% 
                      dplyr::select(sample, os_10y),
                    by = 'sample')
+```
+
+Using functions within package
+
+```{r}
+## testing sub-function called by prep_biomarker_data
+mutation_matrix <- SuMu:::convert_biom_data_to_matrix(
+  biomarker_data = mut_df,
+  id = 'sample',
+  biomarker_formula = '1 ~ gene_effect'
+  )
+
+## testing prep_biomarker_data as a whole
+glm_df <- SuMu::prep_biomarker_data(
+  data = clin_df2,
+  biomarker_data = mut_df,
+  biomarker_formula = 1 ~ gene_effect,
+  id = 'sample'
+)
 ```
 
 ## Fit `stan-glm` model to these genetic data, without clinical covariates
