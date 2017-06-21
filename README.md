@@ -4,7 +4,35 @@ SuMu is an R package that aims to make it easier to estimate the association of 
 
 ## Installation
 
+```
+library(devtools)
+install_github("NCBI-Hackathons/SuMu")
+```
+
 ## Usage
+
+```
+# fit a model
+fit <- fit_glm(
+  data = clin_df,
+  formula = os_10y ~ rescale_.. + `__BIO__`,
+  biomarker_data = mut_df,
+  biomarker_formula = 1 ~ gene_effect + (1|effect) + (1|gene),
+  id = 'sample'
+)
+
+# summarize results
+feature_table(fit)
+feature_graph(fit)
+
+# particular features
+view_feature(mutation_matrix, clin_df, `ANK3.Missense_Mutation`)
+
+# plot auc
+auc(clin_df, "os_10y", fit)
+```
+
+Please check the vignettes for more info and examples.
 
 ## Description
 

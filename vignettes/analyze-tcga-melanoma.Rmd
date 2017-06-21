@@ -289,9 +289,25 @@ glmfit <- rstanarm::stan_glm(
 ```
 
 ## Visualize 
-```{}
+```{r}
 summary_table=feature_table(glmfit)
 feature_graph(glmfit)
-view_feature(mutation_matrix,clin_df2,rownames(summary_table)[1])
-view_feature(mutation_matrix,clin_df2,rownames(summary_table)[nrow(summary_table)])
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[1]))
+view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[nrow(summary_table)]))
 ```
+
+## Calculate AUC
+
+```{r}
+auc(clin_df, "os_10y", glmfit)
+```
+
+```{r}
+auc(clin_df, "os_10y", glmfit, h_gram = T)
+```
+
+```{r}
+auc(clin_df, "os_10y", glmfit, roc_plot = T)
+```
+
+
