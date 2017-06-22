@@ -1,16 +1,16 @@
-# Functions for for calculating AUC from posterior distributions of stan models
+# AUC from posterior distributions of stan models
 
 
 #' Function that uses the raw data and a stanreg object of the model fitted with them.
 #'
 #' It first uses the model in a generative fashion to generate posterior distributions for each observation.
-#' It uses the
+#' It then utilizes the generated distributions of the binary outcome to compute the probability that the draw will be "1" (eg. alive)
+#' 
 #' @param data_frame the dataframe containing clinical data
 #' @param response_name the column name of the data_frame that has the resonse variable
 #' @param fitted_model the stanreg fitted model
 #' @param h_gram do you want a histogram of all the estimated posterior p-values? Possible values TRUE/FALSE, defaults to FALSE
 #' @param roc_plot do you want a ROC curve produced at the end? Possible values TRUE/FALSE, defaults to FALSE
-
 #'
 #' @return numeric AUC
 #' @import survminer
