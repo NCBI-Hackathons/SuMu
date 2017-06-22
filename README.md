@@ -11,14 +11,17 @@ install_github("NCBI-Hackathons/SuMu")
 
 ## Usage
 
+Current usage is limited to 
 ```
 # fit a model
-fit <- fit_glm(
+fit <- fit_rstanarm(
   data = clin_df,
   formula = os_10y ~ rescale_.. + `__BIO__`,
   biomarker_data = mut_df,
-  biomarker_formula = 1 ~ gene_effect + (1|effect) + (1|gene),
+  biomarker_formula = 1 ~ gene_effect,
   id = 'sample'
+  family = binomial(),
+  fit_func = rstanarm::fit_glm
 )
 
 # summarize results
@@ -33,6 +36,20 @@ auc(clin_df, "os_10y", fit)
 ```
 
 Please check the vignettes for more info and examples.
+
+Eventually we plan to support hierarchical biomarker effects. When we do, the structure for the biomarker effect would be written into the `biomarker_formula` like so:
+```
+# fit a model using `stan_glm`
+fit <- fit_glm(
+  data = clin_df,
+  formula = os_10y ~ rescale_.. + `__BIO__`,
+  biomarker_data = mut_df,
+  biomarker_formula = 1 ~ gene_effect + (1|effect) + (1|gene),
+  id = 'sample',
+  family = binomial()
+)
+```
+
 
 ## Description
 
