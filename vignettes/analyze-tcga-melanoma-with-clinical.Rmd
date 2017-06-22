@@ -174,7 +174,7 @@ mutation_matrix <- SuMu:::prep_biomarker_data(
   biomarker_formula = 1 ~ gene_effect,
   .fun = sum,
   id = 'sample'
-)
+)$biomarker_matrix
 
 glm_df2 <- mutation_matrix %>%
   dplyr::left_join(clin_df2_nonmiss %>% 
@@ -186,13 +186,11 @@ glm_df2 <- mutation_matrix %>%
 
 ```{r fit-stan-glm2}
 # construct input formula
-gene_names2 <- mutation_matrix %>% 
-  head(1) %>% 
-  dplyr::select(-sample) %>% 
-  names()
+gene_names <- names(mutation_matrix)
+gene_names <- gene_names[gene_names != 'sample']
 
 gene_subformula <- stringr::str_c('`',
-                 stringr::str_c(gene_names2,
+                 stringr::str_c(gene_names,
                                 collapse = '` + `'),
                  '`')
 
@@ -265,8 +263,7 @@ clinical_formula <- os_10y ~
       rescale_age_at_initial_pathologic_diagnosis + 
         sample_type +
         rescale_breslow_depth_value + 
-        rescale_initial_weight + 
-        `__BIOMARKERS__`
+        rescale_initial_weight 
       | diagnosis_year_group
       )
 
@@ -298,7 +295,8 @@ glmfit_clingen <- rstanarm::stan_glmer(
   sparse = TRUE,
   family = binomial(),
   chains = 4,
-  prior = rstanarm::hs_plus()
+  prior = rstanarm::hs_plus(),
+  adapt_delta = 0.999
 )
 ```
 
