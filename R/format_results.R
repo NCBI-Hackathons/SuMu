@@ -10,8 +10,8 @@
 #' @param id string name of id column in data & biodata
 #' @return structure supporting posterior summary of results
 #' @export
-format_results.stanreg <- function(fit) {
-
+format_results.stanreg <- function(fit, ...) {
+  return(fit)
 }
 
 #' Format fit result for Stanfit object
@@ -24,6 +24,6 @@ format_results.stanreg <- function(fit) {
 #' @param id string name of id column in data & biodata
 #' @return structure supporting posterior summary of results
 #' @export
-format_results.stanfit <- function(fit) {
-
+format_results.stanfit <- function(fit, ...) {
+  return(fit)
 }

@@ -35,42 +35,55 @@ fit_rstanarm <- function(
   biomarker_formula = NULL,
   stanfit_func,
   id = NULL,
-  prior = NULL,
-  biomarker_prior = NULL,
+  prior = rstanarm::hs_plus(),
+  biomarker_prior = prior,
   family = NULL,
   .fun = NULL,
+  biomarker_placeholder = '__BIOM',
+  sparse = TRUE,
   ...
 ) {
+
+  #if (!assertthat::are_equal(prior, biomarker_prior))
+  #  stop('custom biomarker priors not yet implemented.')
+
   ## prepare genetic data matrix
-  biodata <- prep_biomarker_data(biomarker_data = biomarker_data,
-                                 biomarker_matrix = biomarker_matrix,
-                                 biomarker_formula = biomarker_formula,
-                                 data = data,
-                                 id = id)
+  prepped <- prep_data(biomarker_data = biomarker_data,
+                       biomarker_matrix = biomarker_matrix,
+                       biomarker_formula = biomarker_formula,
+                       data = data,
+                       formula = formula,
+                       .fun = .fun,
+                       id = id)
+  clindata <- prepped$data
+  id_colname <- prepped$id
+  biomarker_data <- prepped$biomarker_data
+  biomarker_matrix <- prepped$biomarker_matrix
+  biomarker_formula <- prepped$biomarker_formula
 
-  ## join with clinical data for input to rstanarm
-  glm_df <- biodata %>%
-    dplyr::left_join(data)
-
-  ## prepare priors to input to rstanarm
+  ## join biomarker with clinical data for input to rstanarm
+  analysis_df <- biomarker_matrix %>%
+    dplyr::inner_join(clindata, by = id_colname)
 
   ## update user-supplied formula for rstanarm
+  revised_formula <- update_formula(formula = formula,
+                                    biomarker_matrix = biomarker_matrix,
+                                    id = id,
+                                    biomarker_placeholder = biomarker_placeholder
+                                    )
 
-  ## prepare call to rstanarm
-
-  ## execute call
-  glmfit <- rstanarm::stan_glm(
-    data = glm_df,
-    formula = formula,
-    sparse = TRUE,
-    family = binomial(),
-    chains = 4,
-    prior = rstanarm::hs_plus()
+  ## execute call to rstanarm
+  stanfit <- stanfit_func(
+    data = analysis_df,
+    formula = revised_formula,
+    sparse = sparse,
+    prior = prior,
+    ...
   )
 
   ## format resulting object
 
-  return(glmfit)
+  format_results(stanfit)
 }
 
 #' Function to fit an rstanarm::stan_glm model containing genetic features & clinical data
@@ -105,27 +118,22 @@ fit_rstanarm <- function(
 fit_glm <- function(
   data,
   formula,
-  biomarker_data,
-  biomarker_formula,
+  biomarker_data = NULL,
+  biomarker_matrix = NULL,
+  biomarker_formula = NULL,
   id = NULL,
-  prior = NULL,
-  biomarker_prior = NULL,
+  prior = rstanarm::hs_plus(),
+  biomarker_prior = prior,
   family = NULL,
+  .fun = NULL,
+  biomarker_placeholder = '__BIOM',
+  sparse = TRUE,
   ...
 ) {
-  ## prepare function inputs to pass to fit_rstanarm()
-
-  ## call fit_rstanarm
-  f <- fit_rstanarm(
-    formula = formula,
-    data = data,
-    biomarker_data = biomarker_data,
-    biomarker_formula = biomarker_formula,
-    id = id,
-    stanfit_func = NULL)
-
-  return(f)
-
+  updatemc <- mc <- match.call(expand.dots = T)
+  updatemc[[1]] <- 'fit_rstanarm' # change function call
+  updatemc$fit_func <- rstanarm::stan_glm
+  eval(updatemc, parent.frame())
 }
 
 
