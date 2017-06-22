@@ -18,6 +18,7 @@ knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
 
 # library(SuMu)
 devtools::load_all('.')
+library(zoo)
 library(dplyr)
 library(survminer)
 library(survival)
@@ -182,53 +183,13 @@ diag(cor(cnv_mat, exp_mat)) %>% round(3) %>% as.data.frame
 
 There is some correlation between expression and copy number data as expected.
 
-## Prepare mutation data for analysis
+## Fit a glm model to mutation counts
 
-Manual data preparation
-
-```{r prep-mut-glm}
-
-mutation_counts <- mut_df %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample') %>%
-  dplyr::filter(!is.na(os_10y)) %>%
-  dplyr::filter(effect == "Missense_Mutation") %>%
-  dplyr::group_by(gene) %>%
-  dplyr::mutate(gene_count = n()) %>%
-  dplyr::ungroup() 
-
-top_genes <- mutation_counts %>%
-  dplyr::distinct(gene, .keep_all = TRUE) %>%
-  dplyr::top_n(gene_count, n = 10) %>%
-  dplyr::select(gene)
-
-mutation_matrix <- mutation_counts %>%
-  dplyr::semi_join(top_genes) %>%
-  dplyr::distinct(sample, gene_aa, DNA_VAF) %>%
-  tidyr::spread(key = gene_aa, DNA_VAF, fill = 0)
-
-glm_df <- mutation_matrix %>%
-  dplyr::left_join(clin_df2 %>% 
-                     dplyr::select(sample, os_10y),
-                   by = 'sample')
-```
-
-Using functions within package
+Here we do not adjust for clinical covariates, in order to demonstrate the functionality of the package.
 
 ```{r}
 
-devtools::load_all('.')
-
-# ## testing prep_biomarker_data as a whole
-# glm_df <- SuMu::prep_biomarker_data(
-#   data = clin_df2,
-#   biomarker_data = mut_df,
-#   biomarker_formula = 1 ~ gene_effect,
-#   id = 'sample'
-# )
-
-
+# subset mutations to just chr7 (BRAF) to keep it small for testing
 top_genes <- mut_df %>%
   dplyr::filter(effect == "Missense_Mutation") %>%
   dplyr::select(gene) %>%
@@ -240,22 +201,27 @@ top_genes <- mut_df %>%
   head(10) %>%
   .$gene
 
-# subset mutations to just chr7 (BRAF) to keep it small for testing
 mut_df_subset = mut_df %>% dplyr::filter(gene %in% top_genes)
 
-# create formula
-f <- stringr::str_c('os_10y ~ `',
-stringr::str_c(unique(mut_df_subset$gene_effect),
-collapse = '` + `'),
-'`')
-my_formula <- as.formula(f)
+# base rstanarm function
+glmfit <- fit_rstanarm(
+  data = clin_df2,
+  formula = os_10y ~ 1 + `__BIOM`,
+  biomarker_data = mut_df_subset,
+  biomarker_formula = 1 ~ gene_effect,
+  id = 'sample',
+  stanfit_func = rstanarm::stan_glm,
+  biomarker_placeholder = '__BIOM'
+  )
+```
 
-clin_df3 <- clin_df2 %>% dplyr::select(sample, os_10y)
 
-# new
-g <- fit_glm(
-  data = clin_df3,
-  formula = my_formula,
+```{r, eval=FALSE, include=FALSE}
+# (not tested)
+# new fit-glm function
+glmfit <- fit_glm(
+  data = clin_df2 %>% dplyr::select(os_10y, sample),
+  formula = os_10y ~ .,
   biomarker_data = mut_df_subset,
   biomarker_formula = 1 ~ gene_effect,
   id = 'sample',
@@ -263,32 +229,9 @@ g <- fit_glm(
 
 ```
 
-## Fit `stan-glm` model to these genetic data, without clinical covariates
 
-```{r fit-stan-glm}
-# construct input formula
-gene_names <- names(mutation_matrix)[-1]
-my_formula <- as.formula(
-  stringr::str_c('os_10y',
-                 '~ `',
-                 stringr::str_c(gene_names,
-                                collapse = '` + `'),
-                 '`')
-  )
+## Visualize results
 
-
-# call to `stan_glm`
-glmfit <- rstanarm::stan_glm(
-  data = glm_df,
-  formula = my_formula,
-  sparse = TRUE,
-  family = binomial(),
-  chains = 4,
-  prior = rstanarm::hs_plus()
-)
-```
-
-## Visualize 
 ```{r}
 summary_table=feature_table(glmfit)
 feature_graph(glmfit)
@@ -299,15 +242,15 @@ view_feature(mutation_matrix,clin_df2,gsub("`","",rownames(summary_table)[nrow(s
 ## Calculate AUC
 
 ```{r}
-auc(clin_df, "os_10y", glmfit)
+auc(glm_df, "os_10y", glmfit)
 ```
 
 ```{r}
-auc(clin_df, "os_10y", glmfit, h_gram = T)
+auc(glm_df, "os_10y", glmfit, h_gram = T)
 ```
 
 ```{r}
-auc(clin_df, "os_10y", glmfit, roc_plot = T)
+auc(glm_df, "os_10y", glmfit, roc_plot = T)
 ```
 
 
