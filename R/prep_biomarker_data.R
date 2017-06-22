@@ -3,6 +3,10 @@
 
 #' Function to prepare biomarker data matrix for analysis
 #'
+#' This function reshapes the biomarker data, normalizes
+#' various input formats accepted, and filters to records in the clinical
+#' dataset. It does not merge biomarker & clinical data.
+#'
 #' @param data the dataframe containing clinical data
 #' @param biomarker_data a dataframe containing genetic features / potential biomarkers.
 #'           Should be provided in denomalized or long format, with one record per subject*marker
